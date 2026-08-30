@@ -1,0 +1,2850 @@
+<!doctype html>
+<html lang="uz">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
+    <title>Burger Tycoon 3D — Gorizontal telefon versiyasi</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+        height: 100%;
+        background: #0a0a0a;
+        font-family:
+          "Segoe UI",
+          system-ui,
+          -apple-system,
+          sans-serif;
+        touch-action: none;
+      }
+      #c {
+        display: block;
+        width: 100vw;
+        height: 100vh;
+      }
+
+      #loading {
+        position: fixed;
+        inset: 0;
+        background: linear-gradient(160deg, #2b1a0f, #1a1008);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        z-index: 50;
+      }
+      #loading h1 {
+        font-size: 32px;
+        margin: 0 0 6px;
+        color: #f5c518;
+        text-shadow: 2px 2px 0 #3a1e0a;
+        letter-spacing: 1px;
+      }
+      #loading p {
+        opacity: 0.75;
+        margin: 0 0 24px;
+        font-size: 13px;
+      }
+      .bar {
+        width: min(70vw, 320px);
+        height: 16px;
+        border-radius: 10px;
+        background: rgba(255, 255, 255, 0.12);
+        overflow: hidden;
+        border: 2px solid rgba(245, 197, 24, 0.5);
+      }
+      .bar > div {
+        height: 100%;
+        width: 0%;
+        background: linear-gradient(90deg, #f5c518, #e8622c);
+        transition: width 0.12s linear;
+      }
+      #loadPct {
+        margin-top: 10px;
+        font-size: 12px;
+        opacity: 0.7;
+      }
+
+      #menu {
+        position: fixed;
+        inset: 0;
+        z-index: 40;
+        display: none;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background: radial-gradient(
+          ellipse at center,
+          rgba(60, 35, 15, 0.55),
+          rgba(10, 6, 3, 0.92)
+        );
+        color: #fff;
+        text-align: center;
+        gap: 16px;
+        padding: 20px;
+      }
+      #menu h1 {
+        font-size: clamp(28px, 7vw, 46px);
+        margin: 0;
+        color: #f5c518;
+        -webkit-text-stroke: 2px #241a12;
+        text-shadow: 3px 3px 0 #241a12;
+      }
+      #menu p {
+        max-width: 340px;
+        font-size: 14px;
+        line-height: 1.5;
+        opacity: 0.9;
+        margin: 0;
+      }
+      .menuBtn {
+        font-weight: 800;
+        font-size: 17px;
+        color: #241a12;
+        background: #f5c518;
+        border: 3px solid #241a12;
+        border-radius: 14px;
+        padding: 13px 34px;
+        cursor: pointer;
+        box-shadow: 0 5px 0 #b8890a;
+      }
+      .menuBtn:active {
+        transform: translateY(4px);
+        box-shadow: 0 1px 0 #b8890a;
+      }
+      .menuBtn.secondary {
+        background: #5a4a3a;
+        color: #fff;
+        box-shadow: 0 5px 0 #2e2419;
+      }
+      .menuBtn.secondary:active {
+        box-shadow: 0 1px 0 #2e2419;
+      }
+
+      #hud {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 20;
+        display: none;
+        justify-content: space-between;
+        align-items: flex-start;
+        padding: 12px 14px;
+        pointer-events: none;
+      }
+      #coins {
+        background: rgba(20, 14, 8, 0.72);
+        color: #f5c518;
+        font-weight: 800;
+        font-size: 18px;
+        padding: 8px 16px;
+        border-radius: 20px;
+        border: 2px solid rgba(245, 197, 24, 0.4);
+      }
+      #inventory {
+        background: rgba(20, 14, 8, 0.72);
+        color: #fff;
+        font-weight: 800;
+        font-size: 15px;
+        padding: 8px 12px;
+        border-radius: 16px;
+        border: 2px solid rgba(255, 255, 255, 0.18);
+        margin-left: 8px;
+      }
+      #dayCounter {
+        background: rgba(7, 18, 31, 0.78);
+        color: #d9f4ff;
+        font-weight: 800;
+        font-size: 14px;
+        padding: 8px 13px;
+        border-radius: 16px;
+        border: 2px solid rgba(120, 210, 255, 0.28);
+        margin-left: 8px;
+      }
+      #hint {
+        background: rgba(20, 14, 8, 0.55);
+        color: #fff;
+        font-size: 11px;
+        padding: 6px 12px;
+        border-radius: 14px;
+        max-width: 190px;
+        text-align: right;
+        opacity: 0.8;
+      }
+
+      #buyBar {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 20;
+        display: none;
+        justify-content: center;
+        padding: 14px;
+        pointer-events: none;
+      }
+      #buyBtn {
+        pointer-events: auto;
+        font-weight: 800;
+        font-size: 14px;
+        color: #241a12;
+        background: #7cb342;
+        border: 3px solid #241a12;
+        border-radius: 14px;
+        padding: 12px 20px;
+        cursor: pointer;
+        box-shadow: 0 5px 0 #4c7a1e;
+      }
+      #buyBtn.locked {
+        background: #8a8a8a;
+        box-shadow: 0 5px 0 #555;
+      }
+      #buyBtn:active {
+        transform: translateY(4px);
+        box-shadow: 0 1px 0 #4c7a1e;
+      }
+      #buyBtn.done {
+        display: none;
+      }
+
+      #toast {
+        position: fixed;
+        left: 50%;
+        top: 18%;
+        transform: translate(-50%, 0);
+        background: rgba(20, 14, 8, 0.85);
+        color: #fff;
+        padding: 10px 18px;
+        border-radius: 12px;
+        font-size: 13px;
+        z-index: 60;
+        opacity: 0;
+        transition: opacity 0.25s;
+        pointer-events: none;
+      }
+      #toast.show {
+        opacity: 1;
+      }
+
+      /* Oson boshqaruv: telefonda chapda joystick, o'ngda amallar tugmalari */
+      #mobileControls {
+        position: fixed;
+        inset: 0;
+        z-index: 35;
+        display: none;
+        pointer-events: none;
+      }
+      #joyZone {
+        position: absolute;
+        left: max(18px, env(safe-area-inset-left));
+        bottom: max(18px, env(safe-area-inset-bottom));
+        width: 150px;
+        height: 150px;
+        border-radius: 50%;
+        pointer-events: auto;
+        touch-action: none;
+      }
+      #joyBase {
+        position: absolute;
+        inset: 0;
+        border-radius: 50%;
+        background: rgba(15, 20, 25, 0.38);
+        border: 3px solid rgba(255, 255, 255, 0.25);
+        box-shadow: 0 4px 18px rgba(0, 0, 0, 0.28);
+      }
+      #joyKnob {
+        position: absolute;
+        width: 62px;
+        height: 62px;
+        left: 50%;
+        top: 50%;
+        margin: -31px;
+        border-radius: 50%;
+        background: rgba(245, 197, 24, 0.9);
+        border: 3px solid #5a3b08;
+        box-shadow: 0 3px 10px rgba(0, 0, 0, 0.35);
+      }
+      #actionPanel {
+        position: absolute;
+        right: max(16px, env(safe-area-inset-right));
+        bottom: max(18px, env(safe-area-inset-bottom));
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        pointer-events: auto;
+      }
+      .actionBtn {
+        min-width: 150px;
+        border: 3px solid #241a12;
+        border-radius: 16px;
+        padding: 13px 16px;
+        font-size: 16px;
+        font-weight: 900;
+        color: #241a12;
+        background: #f5c518;
+        box-shadow: 0 5px 0 #9b7200;
+        touch-action: manipulation;
+      }
+      .actionBtn:active {
+        transform: translateY(4px);
+        box-shadow: 0 1px 0 #9b7200;
+      }
+      #takeBurgerBtn {
+        background: #f5c518;
+      }
+      #takeColaBtn {
+        background: #dbeeff;
+      }
+      #deliverBtn {
+        background: #7cb342;
+        color: #102108;
+      }
+      #musicBtn {
+        background: #b8a4ff;
+        color: #241a12;
+      }
+      #simpleGuide {
+        position: fixed;
+        left: 50%;
+        top: 68px;
+        transform: translateX(-50%);
+        z-index: 30;
+        display: none;
+        background: rgba(8, 12, 18, 0.78);
+        color: #fff;
+        border: 2px solid rgba(255, 255, 255, 0.18);
+        border-radius: 16px;
+        padding: 9px 14px;
+        text-align: center;
+        font-size: 13px;
+        font-weight: 800;
+        pointer-events: none;
+        max-width: min(92vw, 520px);
+      }
+      #simpleGuide b {
+        color: #f5c518;
+      }
+      @media (max-width: 800px), (pointer: coarse) {
+        /* Telefonda burger, kola va topshirish avtomatik. Qolgan tugmalar qoladi. */
+        #takeBurgerBtn,
+        #takeColaBtn,
+        #deliverBtn {
+          display: none;
+        }
+        #hud {
+          padding: 8px;
+          gap: 5px;
+          flex-wrap: wrap;
+          align-items: flex-start;
+        }
+        #coins,
+        #inventory,
+        #dayCounter {
+          font-size: 13px;
+          padding: 6px 10px;
+          margin-left: 0;
+        }
+        #hint {
+          display: none;
+        }
+        #buyBar {
+          bottom: 178px;
+          padding: 8px;
+        }
+        #buyBtn {
+          font-size: 12px;
+          padding: 10px 14px;
+        }
+        #mobileControls {
+          display: block;
+        }
+        #simpleGuide {
+          display: block;
+        }
+        #toast {
+          top: 145px;
+          max-width: 82vw;
+          text-align: center;
+          font-size: 13px;
+        }
+      }
+      @media (max-width: 430px) {
+        #joyZone {
+          width: 132px;
+          height: 132px;
+        }
+        #joyKnob {
+          width: 56px;
+          height: 56px;
+          margin: -28px;
+        }
+        .actionBtn {
+          min-width: 132px;
+          padding: 11px 12px;
+          font-size: 14px;
+        }
+      }
+
+      /* Telefon: o'yin gorizontal (landscape) ko'rinish uchun */
+      #rotatePhone {
+        display: none;
+        position: fixed;
+        inset: 0;
+        z-index: 200;
+        background: #101820;
+        color: #fff;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        padding: 24px;
+        font-weight: 900;
+        font-size: 20px;
+      }
+      #rotatePhone .phoneIcon {
+        font-size: 58px;
+        margin-bottom: 14px;
+        display: block;
+        animation: turnPhone 1.4s ease-in-out infinite;
+      }
+      @keyframes turnPhone {
+        50% {
+          transform: rotate(90deg);
+        }
+      }
+      @media (orientation: landscape) and (max-height: 600px) {
+        #hud {
+          padding: 6px 10px;
+          align-items: flex-start;
+        }
+        #coins,
+        #inventory,
+        #dayCounter {
+          font-size: 12px;
+          padding: 5px 9px;
+        }
+        #simpleGuide {
+          top: 42px;
+          font-size: 11px;
+          padding: 6px 10px;
+          max-width: 56vw;
+        }
+        #joyZone {
+          left: max(12px, env(safe-area-inset-left));
+          bottom: max(10px, env(safe-area-inset-bottom));
+          width: 128px;
+          height: 128px;
+        }
+        #joyKnob {
+          width: 54px;
+          height: 54px;
+          margin: -27px;
+        }
+        #actionPanel {
+          right: max(12px, env(safe-area-inset-right));
+          bottom: max(10px, env(safe-area-inset-bottom));
+          gap: 7px;
+        }
+        .actionBtn {
+          min-width: 132px;
+          padding: 9px 11px;
+          font-size: 13px;
+          border-radius: 13px;
+        }
+        #buyBar {
+          bottom: 8px;
+          left: 145px;
+          right: 155px;
+          padding: 0;
+        }
+        #toast {
+          top: 105px;
+          font-size: 12px;
+        }
+      }
+      @media (orientation: portrait) and (max-width: 800px),
+        (orientation: portrait) and (pointer: coarse) {
+        #rotatePhone {
+          display: flex;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="c"></canvas>
+    <div id="rotatePhone">
+      <div>
+        <span class="phoneIcon">📱↻</span>Telefonni yon tomonga aylantiring<br /><small
+          style="opacity: 0.75; font-size: 13px"
+          >O‘yin gorizontal rejimda ishlaydi</small
+        >
+      </div>
+    </div>
+
+    <div id="loading">
+      <h1>🍔 BURGER TYCOON</h1>
+      <p>Restoran yuklanmoqda...</p>
+      <div class="bar"><div id="loadFill"></div></div>
+      <div id="loadPct">0%</div>
+    </div>
+
+    <div id="menu">
+      <h1>🍔 BURGER TYCOON 3D</h1>
+      <p>
+        Juda oson: 1) Buyurtma kuting. 2) Stanok yoniga boring. 3) 🍔 yoki 🥤
+        tugmasini bosing. 4) KASSA oldiga boring va TOPSHIRISH tugmasini bosing.
+        Mijoz joyiga o‘tirib ovqatlanadi!
+      </p>
+      <button class="menuBtn" id="startBtn">O'YINNI BOSHLASH</button>
+      <button class="menuBtn secondary" id="oldBtn">ESKI O'YINLAR</button>
+    </div>
+
+    <div id="hud">
+      <div id="coins">💰 0</div>
+      <div id="inventory">🍔 0 / 🥤 0</div>
+      <div id="dayCounter">📅 Ish kuni: 1</div>
+      <div id="hint">
+        WASD / strelkalar — yuring · 🍔 yonida burger bittalab 5 tagacha olinadi
+        · 🥤 kola ham alohida bittalab 5 tagacha · mijoz yonida avtomatik
+        topshiriladi
+      </div>
+    </div>
+
+    <div id="buyBar">
+      <button id="buyBtn">Yangi joy sotib olish — 400 💰</button>
+    </div>
+
+    <div id="simpleGuide">
+      <b>1.</b> Buyurtmani oling → <b>2.</b> 🍔/🥤 tugmasi bilan mahsulot oling
+      → <b>3.</b> KASSA oldiga boring → <b>4.</b> TOPSHIRING
+    </div>
+    <div id="mobileControls">
+      <div id="joyZone">
+        <div id="joyBase"></div>
+        <div id="joyKnob"></div>
+      </div>
+      <div id="actionPanel">
+        <button class="actionBtn" id="takeBurgerBtn">🍔 GAMBURGER OL</button>
+        <button class="actionBtn" id="takeColaBtn">🥤 KOLA OL</button>
+        <button class="actionBtn" id="deliverBtn">📦 TOPSHIRISH</button>
+        <button class="actionBtn" id="musicBtn">🎵 MUSIQA: OFF</button>
+      </div>
+    </div>
+    <div id="toast"></div>
+
+    <!-- O'tiradigan barcha joylarning tagi bir xil kulrang qilindi -->
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"
+      onerror="
+        document.getElementById('loading').innerHTML =
+          '<h1>⚠️ Yuklab bo\'lmadi</h1><p style=\'max-width:280px;text-align:center\'>3D kutubxona yuklanmadi. Internetga ulanishingizni tekshirib, sahifani qayta oching.</p>'
+      "
+    ></script>
+    <script>
+      (function () {
+        "use strict";
+
+        // Telefonlarda imkon bo'lsa ekran yo'nalishini gorizontalga qulflash.
+        async function requestLandscape() {
+          try {
+            if (screen.orientation && screen.orientation.lock)
+              await screen.orientation.lock("landscape");
+          } catch (e) {
+            /* Brauzer ruxsat bermasa foydalanuvchi telefonni aylantiradi */
+          }
+        }
+        window.addEventListener("orientationchange", function () {
+          setTimeout(function () {
+            window.dispatchEvent(new Event("resize"));
+          }, 250);
+        });
+        document.addEventListener("click", requestLandscape, { once: true });
+
+        // ---------------------------------------------------------------
+        // Original fon musiqasi (Web Audio) — internetdan MP3 yuklamaydi
+        // ---------------------------------------------------------------
+        let musicCtx = null,
+          musicOn = false,
+          musicTimer = null,
+          musicStep = 0;
+        const melody = [
+          261.63, 329.63, 392.0, 329.63, 293.66, 349.23, 440.0, 349.23, 261.63,
+          329.63, 392.0, 523.25, 493.88, 440.0, 392.0, 329.63,
+        ];
+        function playTone(freq, when, dur) {
+          const osc = musicCtx.createOscillator(),
+            gain = musicCtx.createGain();
+          osc.type = "triangle";
+          osc.frequency.setValueAtTime(freq, when);
+          gain.gain.setValueAtTime(0.0001, when);
+          gain.gain.exponentialRampToValueAtTime(0.045, when + 0.02);
+          gain.gain.exponentialRampToValueAtTime(0.0001, when + dur);
+          osc.connect(gain);
+          gain.connect(musicCtx.destination);
+          osc.start(when);
+          osc.stop(when + dur + 0.03);
+        }
+        function startMusic() {
+          if (!musicCtx)
+            musicCtx = new (window.AudioContext || window.webkitAudioContext)();
+          musicCtx.resume();
+          musicOn = true;
+          musicBtn.textContent = "🎵 MUSIQA: ON";
+          clearInterval(musicTimer);
+          musicTimer = setInterval(() => {
+            if (!musicOn) return;
+            const t = musicCtx.currentTime;
+            playTone(melody[musicStep % melody.length], t, 0.22);
+            if (musicStep % 4 === 0)
+              playTone(melody[(musicStep + 8) % melody.length] / 2, t, 0.3);
+            musicStep++;
+          }, 280);
+        }
+        function stopMusic() {
+          musicOn = false;
+          clearInterval(musicTimer);
+          musicBtn.textContent = "🎵 MUSIQA: OFF";
+        }
+        document
+          .getElementById("musicBtn")
+          .addEventListener("click", () =>
+            musicOn ? stopMusic() : startMusic(),
+          );
+
+        // ---------------------------------------------------------------
+        // Boot / loading screen
+        // ---------------------------------------------------------------
+        const loadingEl = document.getElementById("loading");
+        const loadFill = document.getElementById("loadFill");
+        const loadPct = document.getElementById("loadPct");
+        const menuEl = document.getElementById("menu");
+        const hudEl = document.getElementById("hud");
+        const buyBarEl = document.getElementById("buyBar");
+        const buyBtn = document.getElementById("buyBtn");
+        const coinsEl = document.getElementById("coins");
+        const inventoryEl = document.getElementById("inventory");
+        const dayCounterEl = document.getElementById("dayCounter");
+        const toastEl = document.getElementById("toast");
+        const startBtn = document.getElementById("startBtn");
+        const oldBtn = document.getElementById("oldBtn");
+        const takeBurgerBtn = document.getElementById("takeBurgerBtn");
+        const musicBtn = document.getElementById("musicBtn");
+        const takeColaBtn = document.getElementById("takeColaBtn");
+        const deliverBtn = document.getElementById("deliverBtn");
+        const joyZone = document.getElementById("joyZone");
+        const joyKnob = document.getElementById("joyKnob");
+
+        function toast(msg) {
+          toastEl.textContent = msg;
+          toastEl.classList.add("show");
+          clearTimeout(toast._t);
+          toast._t = setTimeout(() => toastEl.classList.remove("show"), 1600);
+        }
+
+        let pct = 0;
+        const loadTimer = setInterval(function () {
+          pct += 4 + Math.random() * 10;
+          if (pct >= 100) {
+            pct = 100;
+            clearInterval(loadTimer);
+            loadFill.style.width = "100%";
+            loadPct.textContent = "100%";
+            setTimeout(function () {
+              loadingEl.style.display = "none";
+              menuEl.style.display = "flex";
+            }, 260);
+          } else {
+            loadFill.style.width = pct + "%";
+            loadPct.textContent = Math.floor(pct) + "%";
+          }
+        }, 140);
+
+        oldBtn.addEventListener("click", function () {
+          toast("Tez orada qo'shiladi 🙂");
+        });
+
+        // ---------------------------------------------------------------
+        // THREE basics
+        // ---------------------------------------------------------------
+        const canvas = document.getElementById("c");
+        const renderer = new THREE.WebGLRenderer({
+          canvas,
+          antialias: false,
+          powerPreference: "high-performance",
+        });
+        // O'yin qotmasligi uchun render sifati yengillashtirildi.
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.25));
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFShadowMap;
+
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x8fd0ef);
+        scene.fog = new THREE.Fog(0x8fd0ef, 75, 260);
+
+        const camera = new THREE.PerspectiveCamera(
+          62,
+          window.innerWidth / window.innerHeight,
+          0.1,
+          500,
+        );
+        const camAnchor = new THREE.Vector3(0, 15, 34);
+        camera.position.copy(camAnchor);
+
+        function resize() {
+          const w = window.innerWidth,
+            h = window.innerHeight;
+          renderer.setSize(w, h);
+          camera.aspect = w / h;
+          camera.updateProjectionMatrix();
+        }
+        window.addEventListener("resize", resize);
+        resize();
+
+        // Lights
+        const hemi = new THREE.HemisphereLight(0xbfe3ff, 0x3a2e22, 0.9);
+        scene.add(hemi);
+        const sun = new THREE.DirectionalLight(0xfff2d6, 1.05);
+        sun.position.set(30, 45, 20);
+        sun.castShadow = true;
+        sun.shadow.mapSize.set(512, 512);
+        sun.shadow.camera.left = -60;
+        sun.shadow.camera.right = 60;
+        sun.shadow.camera.top = 60;
+        sun.shadow.camera.bottom = -60;
+        sun.shadow.camera.far = 150;
+        scene.add(sun);
+        const fill = new THREE.AmbientLight(0xffffff, 0.28);
+        scene.add(fill);
+        // Tezlashtirilgan kun-tun aylanishi (taxminan 70 soniyada to'liq sikl).
+        const daySky = new THREE.Color(0x8fd0ef),
+          nightSky = new THREE.Color(0x071322),
+          skyColor = new THREE.Color();
+        let currentNightAmount = 0;
+        const roadGlowMats = [];
+        const buildingWindowMats = [];
+        let gameStartMs = null;
+        let workedDays = 1;
+        function updateDayNight(now) {
+          const phase = (now * 0.00009) % (Math.PI * 2);
+          const daylight = Math.max(0.08, (Math.sin(phase) + 1) * 0.5);
+          skyColor.copy(nightSky).lerp(daySky, daylight);
+          scene.background.copy(skyColor);
+          scene.fog.color.copy(skyColor);
+          hemi.intensity = 0.18 + 0.9 * daylight;
+          fill.intensity = 0.06 + 0.34 * daylight;
+          sun.intensity = 0.12 + 1.1 * daylight;
+          sun.position.set(Math.cos(phase) * 55, 8 + Math.sin(phase) * 52, 28);
+          const nightAmount = 1 - daylight;
+          currentNightAmount = nightAmount;
+          for (const n of nightLights) {
+            if (n.light) n.light.intensity = nightAmount * 2.15;
+            n.mat.emissiveIntensity = nightAmount * 2.5;
+          }
+          for (const m of roadGlowMats)
+            m.emissiveIntensity = 0.05 + nightAmount * 1.65;
+          for (const m of buildingWindowMats)
+            m.emissiveIntensity = 0.08 + nightAmount * 2.2;
+          for (let i = 0; i < fountainLights.length; i++)
+            fountainLights[i].intensity = 0.1 + nightAmount * 4.2;
+          if (running && gameStartMs !== null) {
+            const nextDay = 1 + Math.floor((now - gameStartMs) / 70000);
+            if (nextDay !== workedDays) {
+              workedDays = nextDay;
+              toast("Yangi ish kuni boshlandi! 📅 " + workedDays + "-kun");
+            }
+            dayCounterEl.textContent = "📅 Ish kuni: " + workedDays;
+          }
+          // Fontan kechasi kuchliroq otiladi, kunduzi esa tinchroq ishlaydi.
+          for (const jet of fountainJets) {
+            jet.visible = nightAmount > 0.18;
+            jet.material.opacity = 0.18 + nightAmount * 0.62;
+            jet.material.emissiveIntensity = 0.15 + nightAmount * 1.8;
+          }
+          if (waterMat) waterMat.emissiveIntensity = 0.15 + nightAmount * 0.8;
+          // Butun sahnani har kadrda traverse qilish qotishga sabab bo'lar edi, olib tashlandi.
+        }
+
+        // ---------------------------------------------------------------
+        // Ground: plaza + grass border + road + parking lot
+        // ---------------------------------------------------------------
+        const groundGroup = new THREE.Group();
+        scene.add(groundGroup);
+
+        function box(w, h, d, color, metal) {
+          const g = new THREE.BoxGeometry(w, h, d);
+          const m = new THREE.MeshStandardMaterial({
+            color,
+            roughness: metal ? 0.35 : 0.85,
+            metalness: metal ? 0.5 : 0.02,
+          });
+          const mesh = new THREE.Mesh(g, m);
+          mesh.castShadow = true;
+          mesh.receiveShadow = true;
+          return mesh;
+        }
+
+        // grass field (big, slightly irregular tint by two overlapping planes for variation)
+        const grass = new THREE.Mesh(
+          new THREE.CircleGeometry(140, 48),
+          new THREE.MeshStandardMaterial({ color: 0x6fae4a, roughness: 1 }),
+        );
+        grass.rotation.x = -Math.PI / 2;
+        grass.position.y = -0.02;
+        grass.receiveShadow = true;
+        groundGroup.add(grass);
+
+        // dirt patches for realism
+        for (let i = 0; i < 10; i++) {
+          const patch = new THREE.Mesh(
+            new THREE.CircleGeometry(4 + Math.random() * 5, 12),
+            new THREE.MeshStandardMaterial({ color: 0x8a6a45, roughness: 1 }),
+          );
+          patch.rotation.x = -Math.PI / 2;
+          const ang = Math.random() * Math.PI * 2,
+            rad = 55 + Math.random() * 70;
+          patch.position.set(Math.cos(ang) * rad, -0.015, Math.sin(ang) * rad);
+          patch.receiveShadow = true;
+          groundGroup.add(patch);
+        }
+
+        // main plaza (restaurant courtyard) - concrete
+        const plaza = new THREE.Mesh(
+          new THREE.PlaneGeometry(70, 46),
+          new THREE.MeshStandardMaterial({ color: 0xc9c1ae, roughness: 0.95 }),
+        );
+        plaza.rotation.x = -Math.PI / 2;
+        plaza.position.set(0, 0, 6);
+        plaza.receiveShadow = true;
+        groundGroup.add(plaza);
+
+        // road along the back
+        const mainRoadMat = new THREE.MeshStandardMaterial({
+          color: 0x35302e,
+          roughness: 0.72,
+          emissive: 0x10151d,
+          emissiveIntensity: 0.05,
+        });
+        roadGlowMats.push(mainRoadMat);
+        const road = new THREE.Mesh(
+          new THREE.PlaneGeometry(300, 16),
+          mainRoadMat,
+        );
+        road.rotation.x = -Math.PI / 2;
+        road.position.set(0, 0.01, -34);
+        road.receiveShadow = true;
+        groundGroup.add(road);
+        // road center dashes
+        for (let x = -140; x < 140; x += 10) {
+          const dash = box(4, 0.02, 0.6, 0xf5c518);
+          dash.position.set(x, 0.02, -34);
+          dash.castShadow = false;
+          groundGroup.add(dash);
+        }
+
+        // Shahar bo'ylab yurish uchun qo'shimcha keng yo'llar va qorong'uda yorug'lik beradigan yo'l chetlari.
+        function addCityRoad(x, z, w, d) {
+          const mat = new THREE.MeshStandardMaterial({
+            color: 0x30343b,
+            roughness: 0.68,
+            emissive: 0x0b1018,
+            emissiveIntensity: 0.05,
+          });
+          roadGlowMats.push(mat);
+          const r = new THREE.Mesh(new THREE.PlaneGeometry(w, d), mat);
+          r.rotation.x = -Math.PI / 2;
+          r.position.set(x, 0.012, z);
+          r.receiveShadow = true;
+          groundGroup.add(r);
+          const edgeMat = new THREE.MeshStandardMaterial({
+            color: 0xdde7f2,
+            emissive: 0x6da6d6,
+            emissiveIntensity: 0.08,
+            roughness: 0.45,
+          });
+          roadGlowMats.push(edgeMat);
+          const e1 = new THREE.Mesh(
+            new THREE.BoxGeometry(w, 0.025, 0.18),
+            edgeMat,
+          );
+          e1.position.set(x, 0.03, z - d / 2 + 0.22);
+          groundGroup.add(e1);
+          const e2 = e1.clone();
+          e2.position.z = z + d / 2 - 0.22;
+          groundGroup.add(e2);
+        }
+        addCityRoad(0, 48, 220, 12);
+        addCityRoad(-62, 5, 14, 125);
+        addCityRoad(62, 5, 14, 125);
+        addCityRoad(0, 88, 220, 14);
+        addCityRoad(-96, 25, 12, 140);
+        addCityRoad(96, 25, 12, 140);
+
+        // parking lot (right side)
+        const parking = new THREE.Mesh(
+          new THREE.PlaneGeometry(30, 26),
+          new THREE.MeshStandardMaterial({ color: 0x4a4744, roughness: 0.95 }),
+        );
+        parking.rotation.x = -Math.PI / 2;
+        parking.position.set(58, 0.015, -6);
+        parking.receiveShadow = true;
+        groundGroup.add(parking);
+        for (let i = 0; i < 5; i++) {
+          const line = box(0.25, 0.01, 5, 0xffffff);
+          line.position.set(58 - 12 + i * 6, 0.02, -6);
+          groundGroup.add(line);
+        }
+
+        // ---------------------------------------------------------------
+        // Night city lights + colorful fountain
+        // ---------------------------------------------------------------
+        const nightLights = [];
+        let streetLampIndex = 0;
+
+        // Kirish joyi doimo ochiq qoladi: oq yo'lak va kirish maydonchasiga
+        // daraxt, chiroq yoki boshqa buyumlar qo'yilmaydi.
+        function isEntranceClearZone(x, z) {
+          return Math.abs(x) < 8 && z > 20 && z < 43;
+        }
+
+        function addStreetLamp(x, z) {
+          if (isEntranceClearZone(x, z)) return;
+          const g = new THREE.Group();
+          // Chiroq tagidagi og'ir tayanch/poydevor: ustun yerga qotib turgandek ko'rinadi.
+          const foundation = new THREE.Mesh(
+            new THREE.BoxGeometry(1.5, 0.16, 1.5),
+            new THREE.MeshStandardMaterial({
+              color: 0x77736c,
+              roughness: 0.85,
+            }),
+          );
+          foundation.position.y = 0.08;
+          foundation.castShadow = true;
+          foundation.receiveShadow = true;
+          g.add(foundation);
+          const base = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.52, 0.7, 0.32, 12),
+            new THREE.MeshStandardMaterial({
+              color: 0x3d4148,
+              roughness: 0.55,
+              metalness: 0.25,
+            }),
+          );
+          base.position.y = 0.3;
+          base.castShadow = true;
+          base.receiveShadow = true;
+          g.add(base);
+          const baseTop = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.28, 0.38, 0.18, 12),
+            new THREE.MeshStandardMaterial({
+              color: 0x50555d,
+              roughness: 0.45,
+              metalness: 0.3,
+            }),
+          );
+          baseTop.position.y = 0.58;
+          baseTop.castShadow = true;
+          g.add(baseTop);
+          const pole = box(0.12, 5.15, 0.12, 0x333333, true);
+          pole.position.y = 3.15;
+          g.add(pole);
+          const glowMat = new THREE.MeshStandardMaterial({
+            color: 0xffe2a3,
+            emissive: 0xffc15c,
+            emissiveIntensity: 0,
+          });
+          const bulb = new THREE.Mesh(
+            new THREE.SphereGeometry(0.28, 10, 10),
+            glowMat,
+          );
+          bulb.position.y = 5.55;
+          g.add(bulb);
+          // Har bir ustunga alohida PointLight berilsa o'yin qotadi. Har 4-chisi haqiqiy yorug'lik beradi, qolganlari emissive lampochka bilan yorqin ko'rinadi.
+          const activeLight = streetLampIndex++ % 4 === 0;
+          let light = null;
+          if (activeLight) {
+            light = new THREE.PointLight(0xffc56b, 0, 16, 2);
+            light.position.y = 5.4;
+            g.add(light);
+          }
+          g.position.set(x, 0, z);
+          scene.add(g);
+          nightLights.push({ light, mat: glowMat });
+        }
+        for (let x = -32; x <= 32; x += 8) {
+          addStreetLamp(x, -20);
+          addStreetLamp(x, 31);
+        }
+        for (let z = -12; z <= 24; z += 9) {
+          addStreetLamp(-34, z);
+          addStreetLamp(34, z);
+        }
+        for (let x = -100; x <= 100; x += 10) {
+          addStreetLamp(x, 42);
+          addStreetLamp(x, 54);
+          addStreetLamp(x, 81);
+          addStreetLamp(x, 95);
+        }
+        for (let z = -45; z <= 70; z += 10) {
+          addStreetLamp(-69, z);
+          addStreetLamp(-55, z);
+          addStreetLamp(55, z);
+          addStreetLamp(69, z);
+        }
+
+        // Restaurant ichidagi va tashqarisidagi yorug'liklar
+        const restaurantLightMat = new THREE.MeshStandardMaterial({
+          color: 0xffd27a,
+          emissive: 0xff9f30,
+          emissiveIntensity: 0,
+        });
+        [
+          [-12, 5, 15],
+          [0, 5, 15],
+          [12, 5, 15],
+          [-12, 4, -3],
+          [0, 4, -3],
+          [12, 4, -3],
+        ].forEach((a) => {
+          const lamp = new THREE.PointLight(0xffb45c, 0, 12, 2);
+          lamp.position.set(a[0], a[1], a[2]);
+          scene.add(lamp);
+          const shade = new THREE.Mesh(
+            new THREE.SphereGeometry(0.32, 10, 10),
+            restaurantLightMat,
+          );
+          shade.position.copy(lamp.position);
+          scene.add(shade);
+          nightLights.push({ light: lamp, mat: restaurantLightMat });
+        });
+
+        // Fontan alohida markaziy maydonchada: stol, yo'l va mijoz joylarining ustiga chiqmaydi.
+        const fountainIsland = new THREE.Mesh(
+          new THREE.CylinderGeometry(6.2, 6.2, 0.08, 48),
+          new THREE.MeshStandardMaterial({ color: 0xbab3a3, roughness: 0.9 }),
+        );
+        fountainIsland.position.set(0, 0.04, 6);
+        fountainIsland.receiveShadow = true;
+        scene.add(fountainIsland);
+        const fountain = new THREE.Group();
+        fountain.position.set(0, 0.08, 6);
+        scene.add(fountain); // Plazaning qoq markazi
+        const basin = new THREE.Mesh(
+          new THREE.CylinderGeometry(4.6, 5.1, 0.45, 32),
+          new THREE.MeshStandardMaterial({
+            color: 0x69727d,
+            roughness: 0.45,
+            metalness: 0.2,
+          }),
+        );
+        basin.position.y = 0.22;
+        fountain.add(basin);
+        const waterMat = new THREE.MeshStandardMaterial({
+          color: 0x2ca8ff,
+          transparent: true,
+          opacity: 0.75,
+          emissive: 0x004488,
+          emissiveIntensity: 0.15,
+          roughness: 0.2,
+        });
+        const water = new THREE.Mesh(
+          new THREE.CylinderGeometry(4.1, 4.1, 0.12, 32),
+          waterMat,
+        );
+        water.position.y = 0.5;
+        fountain.add(water);
+        const fountainColors = [
+          0xff2266, 0x2f7cff, 0x23e0a2, 0xffd33d, 0xa95cff,
+        ];
+        const fountainLights = [];
+        const fountainJets = [];
+        for (let i = 0; i < 5; i++) {
+          const ang = (i * Math.PI * 2) / 5,
+            jet = new THREE.Mesh(
+              new THREE.CylinderGeometry(0.09, 0.16, 3.5, 8),
+              new THREE.MeshStandardMaterial({
+                color: fountainColors[i],
+                transparent: true,
+                opacity: 0.45,
+                emissive: fountainColors[i],
+                emissiveIntensity: 0.2,
+              }),
+            );
+          jet.position.set(Math.cos(ang) * 2.1, 2.2, Math.sin(ang) * 2.1);
+          jet.rotation.z = Math.cos(ang) * 0.22;
+          jet.rotation.x = Math.sin(ang) * 0.22;
+          fountain.add(jet);
+          fountainJets.push(jet);
+          const l = new THREE.PointLight(fountainColors[i], 0, 9, 2);
+          l.position.set(Math.cos(ang) * 2.2, 1.2, Math.sin(ang) * 2.2);
+          fountain.add(l);
+          fountainLights.push(l);
+        }
+        const fountainCore = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.8, 1, 1.4, 16),
+          new THREE.MeshStandardMaterial({ color: 0xeeeeee, roughness: 0.5 }),
+        );
+        fountainCore.position.y = 1.1;
+        fountain.add(fountainCore);
+        const mainJet = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.13, 0.22, 6.4, 12),
+          new THREE.MeshStandardMaterial({
+            color: 0xaeeaff,
+            transparent: true,
+            opacity: 0.62,
+            emissive: 0x258cff,
+            emissiveIntensity: 0.35,
+          }),
+        );
+        mainJet.position.y = 4.0;
+        fountain.add(mainJet);
+        fountainJets.push(mainJet);
+        for (let i = 0; i < 18; i++) {
+          const drop = new THREE.Mesh(
+            new THREE.SphereGeometry(0.07 + Math.random() * 0.05, 8, 8),
+            new THREE.MeshStandardMaterial({
+              color: 0xd6f4ff,
+              transparent: true,
+              opacity: 0.7,
+              emissive: 0x2475a5,
+              emissiveIntensity: 0.2,
+            }),
+          );
+          const a = Math.random() * Math.PI * 2,
+            r = 0.6 + Math.random() * 1.7;
+          drop.position.set(
+            Math.cos(a) * r,
+            2.2 + Math.random() * 3.8,
+            Math.sin(a) * r,
+          );
+          fountain.add(drop);
+        }
+
+        // ---------------------------------------------------------------
+        // Buildings (skyline) + trees
+        // ---------------------------------------------------------------
+        function windowTexture(rows, cols, litColor) {
+          const cvs = document.createElement("canvas");
+          cvs.width = 64;
+          cvs.height = 64;
+          const ctx = cvs.getContext("2d");
+          ctx.fillStyle = "#26313d";
+          ctx.fillRect(0, 0, 64, 64);
+          const cw = 64 / cols,
+            ch = 64 / rows;
+          for (let r = 0; r < rows; r++)
+            for (let c = 0; c < cols; c++) {
+              if (Math.random() < 0.6) {
+                ctx.fillStyle = Math.random() < 0.5 ? litColor : "#12181f";
+                ctx.fillRect(c * cw + 2, r * ch + 2, cw - 4, ch - 4);
+              }
+            }
+          const tex = new THREE.CanvasTexture(cvs);
+          tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+          return tex;
+        }
+        function makeBuilding(x, z, w, h, d, color) {
+          const mesh = box(w, h, d, color);
+          mesh.position.set(x, h / 2, z);
+          // To'rt tomonda ham oynali fasad: kunduz aks, kechasi ichki chiroqlar ko'rinadi.
+          const glassMat = new THREE.MeshStandardMaterial({
+            color: 0x86b8d8,
+            roughness: 0.18,
+            metalness: 0.45,
+            transparent: true,
+            opacity: 0.88,
+            emissive: 0x10243a,
+            emissiveIntensity: 0.15,
+          });
+          const front = new THREE.Mesh(
+            new THREE.PlaneGeometry(w * 0.92, h * 0.9),
+            glassMat.clone(),
+          );
+          front.position.set(0, 0, d / 2 + 0.06);
+          mesh.add(front);
+          const back = new THREE.Mesh(
+            new THREE.PlaneGeometry(w * 0.92, h * 0.9),
+            glassMat.clone(),
+          );
+          back.rotation.y = Math.PI;
+          back.position.set(0, 0, -d / 2 - 0.06);
+          mesh.add(back);
+          const sideL = new THREE.Mesh(
+            new THREE.PlaneGeometry(d * 0.92, h * 0.9),
+            glassMat.clone(),
+          );
+          sideL.rotation.y = -Math.PI / 2;
+          sideL.position.set(-w / 2 - 0.06, 0, 0);
+          mesh.add(sideL);
+          const sideR = new THREE.Mesh(
+            new THREE.PlaneGeometry(d * 0.92, h * 0.9),
+            glassMat.clone(),
+          );
+          sideR.rotation.y = Math.PI / 2;
+          sideR.position.set(w / 2 + 0.06, 0, 0);
+          mesh.add(sideR);
+          const roof = box(w * 1.04, 0.35, d * 1.04, 0x2a3038, true);
+          roof.position.y = h / 2 + 0.18;
+          mesh.add(roof);
+          // Ko'p sonli haqiqiy oynaga o'xshash yoritilgan derazalar.
+          const rows = Math.max(4, Math.floor(h / 3.6)),
+            cols = Math.max(3, Math.floor(w / 2.8));
+          const winMat = new THREE.MeshStandardMaterial({
+            color: 0xffe6a1,
+            emissive: 0xffa72b,
+            emissiveIntensity: 0.12,
+            roughness: 0.35,
+          });
+          buildingWindowMats.push(winMat);
+          for (let r = 0; r < rows; r++)
+            for (let c = 0; c < cols; c++)
+              if (Math.random() < 0.72) {
+                const ww = Math.min(0.85, (w / (cols + 1)) * 0.55),
+                  wh = Math.min(1.15, (h / (rows + 1)) * 0.62);
+                const win = new THREE.Mesh(
+                  new THREE.PlaneGeometry(ww, wh),
+                  winMat,
+                );
+                win.position.set(
+                  -w / 2 + ((c + 1) * w) / (cols + 1),
+                  -h / 2 + ((r + 1) * h) / (rows + 1),
+                  d / 2 + 0.085,
+                );
+                mesh.add(win);
+              }
+          scene.add(mesh);
+          return mesh;
+        }
+        const bColors = [0xb85c4a, 0x6b8caf, 0xc9a24a, 0x7a8a6a, 0x9b6b8a];
+        for (let i = 0; i < 9; i++) {
+          const x = -110 + i * 28 + (Math.random() * 8 - 4);
+          const h = 20 + Math.random() * 26;
+          makeBuilding(
+            x,
+            -70 - Math.random() * 10,
+            14 + Math.random() * 6,
+            h,
+            14,
+            bColors[i % bColors.length],
+          );
+        }
+
+        function makeTree(x, z, scale) {
+          const g = new THREE.Group();
+          const trunk = box(0.7, 3.4, 0.7, 0x6b4a2a);
+          trunk.position.y = 1.7;
+          g.add(trunk);
+          const leafColors = [0x4f9142, 0x5aa84a, 0x3f7d36];
+          for (let i = 0; i < 3; i++) {
+            const s = new THREE.Mesh(
+              new THREE.SphereGeometry(2.1 - i * 0.3, 8, 8),
+              new THREE.MeshStandardMaterial({
+                color: leafColors[i % leafColors.length],
+                roughness: 1,
+              }),
+            );
+            s.position.set(
+              (Math.random() - 0.5) * 1.2,
+              3.8 + i * 1.4,
+              (Math.random() - 0.5) * 1.2,
+            );
+            s.castShadow = true;
+            g.add(s);
+          }
+          g.position.set(x, 0, z);
+          g.scale.setScalar(scale || 1);
+          scene.add(g);
+          return g;
+        }
+        // Daraxtlar faqat o'tloqda: yo'lning o'rtasi va yo'l chetlariga qo'yilmaydi.
+        function isGrassTreeSpot(x, z) {
+          if (isEntranceClearZone(x, z)) return false; // oq kirish yo'lagi doimo bo'sh
+          if (Math.abs(x) < 40 && z > -20 && z < 30) return false; // restoran maydoni
+          if (Math.abs(z + 34) < 10) return false; // asosiy yo'l
+          if (Math.abs(z - 48) < 8 || Math.abs(z - 88) < 9) return false;
+          if (Math.abs(x + 62) < 9 || Math.abs(x - 62) < 9) return false;
+          if (Math.abs(x + 96) < 8 || Math.abs(x - 96) < 8) return false;
+          return true;
+        }
+        let treeMade = 0,
+          treeTries = 0;
+        while (treeMade < 30 && treeTries < 500) {
+          treeTries++;
+          const ang = Math.random() * Math.PI * 2,
+            rad = 48 + Math.random() * 82;
+          const x = Math.cos(ang) * rad,
+            z = Math.sin(ang) * rad * 0.72 - 6;
+          if (!isGrassTreeSpot(x, z)) continue;
+          makeTree(x, z, 0.75 + Math.random() * 0.5);
+          treeMade++;
+        }
+
+        // ---------------------------------------------------------------
+        // Qo'shimcha shahar manzarasi + osmonda uchadigan samolyotlar
+        // ---------------------------------------------------------------
+        for (let i = 0; i < 18; i++) {
+          const ang = Math.random() * Math.PI * 2,
+            rad = 95 + Math.random() * 70;
+          const x = Math.cos(ang) * rad,
+            z = Math.sin(ang) * rad;
+          const h = 16 + Math.random() * 45;
+          makeBuilding(
+            x,
+            z,
+            10 + Math.random() * 12,
+            h,
+            10 + Math.random() * 12,
+            bColors[i % bColors.length],
+          );
+        }
+        function makePlane() {
+          const g = new THREE.Group();
+          const white = new THREE.MeshStandardMaterial({
+            color: 0xf4f7fb,
+            metalness: 0.35,
+            roughness: 0.28,
+          });
+          const metal = new THREE.MeshStandardMaterial({
+            color: 0xc7d4df,
+            metalness: 0.65,
+            roughness: 0.22,
+          });
+          const dark = new THREE.MeshStandardMaterial({
+            color: 0x18354d,
+            metalness: 0.35,
+            roughness: 0.18,
+          });
+          const body = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.48, 0.58, 5.6, 18),
+            white,
+          );
+          body.rotation.x = Math.PI / 2;
+          g.add(body);
+          const nose = new THREE.Mesh(
+            new THREE.SphereGeometry(0.55, 16, 12),
+            white,
+          );
+          nose.scale.set(1, 1, 1.35);
+          nose.position.z = -2.85;
+          g.add(nose);
+          const wing = box(7.4, 0.12, 0.78, metal, true);
+          wing.position.z = 0.1;
+          g.add(wing);
+          const tailWing = box(2.4, 0.08, 0.36, metal, true);
+          tailWing.position.z = 2.2;
+          g.add(tailWing);
+          const fin = box(0.1, 1.25, 0.72, metal, true);
+          fin.position.set(0, 0.62, 2.25);
+          g.add(fin);
+          for (const x of [-1.65, 1.65]) {
+            const eng = new THREE.Mesh(
+              new THREE.CylinderGeometry(0.32, 0.42, 1.05, 14),
+              metal,
+            );
+            eng.rotation.z = Math.PI / 2;
+            eng.position.set(x, -0.18, 0.18);
+            g.add(eng);
+          }
+          for (let i = 0; i < 8; i++) {
+            const win = new THREE.Mesh(
+              new THREE.SphereGeometry(0.075, 8, 8),
+              dark,
+            );
+            win.position.set(-0.28, -0.03, -1.7 + i * 0.48);
+            g.add(win);
+          }
+          const red = new THREE.MeshStandardMaterial({
+            color: 0xff2d2d,
+            emissive: 0xff0000,
+            emissiveIntensity: 0.8,
+          });
+          const green = new THREE.MeshStandardMaterial({
+            color: 0x32ff73,
+            emissive: 0x00ff33,
+            emissiveIntensity: 0.8,
+          });
+          const leftTip = new THREE.Mesh(
+            new THREE.SphereGeometry(0.11, 8, 8),
+            red,
+          );
+          leftTip.position.set(-3.75, 0, 0.1);
+          g.add(leftTip);
+          const rightTip = new THREE.Mesh(
+            new THREE.SphereGeometry(0.11, 8, 8),
+            green,
+          );
+          rightTip.position.set(3.75, 0, 0.1);
+          g.add(rightTip);
+          g.scale.setScalar(1.9);
+          return g;
+        }
+        const planes = [];
+        for (let i = 0; i < 4; i++) {
+          const plane = makePlane();
+          plane.position.set(-170 + i * 85, 42 + i * 10, -80 - i * 15);
+          plane.rotation.y = -Math.PI / 2; // samolyot +X tomonga harakat qilsa, burni ham oldinga qaraydi
+          scene.add(plane);
+          planes.push({ mesh: plane, speed: 9 + i * 1.5, phase: i * 1.7 });
+        }
+
+        // ---------------------------------------------------------------
+        // Osmondagi harakatlanuvchi bulutlar: kamerani tepaga qaratganda ko'rinadi.
+        const clouds = [];
+        function makeCloud() {
+          const g = new THREE.Group();
+          const mat = new THREE.MeshStandardMaterial({
+            color: 0xf4f7ff,
+            roughness: 1,
+            transparent: true,
+            opacity: 0.88,
+          });
+          const parts = [
+            [-1.5, 0, 0, 1.0],
+            [-0.55, 0.25, 0.1, 1.25],
+            [0.45, 0.15, 0, 1.05],
+            [1.35, -0.05, 0.1, 0.82],
+            [0, 0.6, 0, 0.85],
+          ];
+          for (const p of parts) {
+            const m = new THREE.Mesh(new THREE.SphereGeometry(p[3], 8, 7), mat);
+            m.position.set(p[0], p[1], p[2]);
+            g.add(m);
+          }
+          return g;
+        }
+        for (let i = 0; i < 7; i++) {
+          const c = makeCloud();
+          c.position.set(-110 + i * 34, 28 + (i % 3) * 8, -55 - (i % 2) * 35);
+          c.scale.setScalar(1.4 + (i % 3) * 0.35);
+          scene.add(c);
+          clouds.push({ mesh: c, speed: 1.2 + (i % 4) * 0.35 });
+        }
+
+        // Low-poly car factory (parked + traffic)
+        // ---------------------------------------------------------------
+        function makeCar(color) {
+          const g = new THREE.Group();
+          const body = box(2.2, 0.7, 4.2, color);
+          body.position.y = 0.55;
+          g.add(body);
+          const cabin = box(1.7, 0.55, 2.1, 0xdff2ff, true);
+          cabin.position.set(0, 1.05, -0.2);
+          g.add(cabin);
+          const wheelGeo = new THREE.CylinderGeometry(0.4, 0.4, 0.3, 12);
+          const wheelMat = new THREE.MeshStandardMaterial({
+            color: 0x161616,
+            roughness: 0.8,
+          });
+          [
+            [-1.05, 0.4, 1.4],
+            [1.05, 0.4, 1.4],
+            [-1.05, 0.4, -1.4],
+            [1.05, 0.4, -1.4],
+          ].forEach((p) => {
+            const w = new THREE.Mesh(wheelGeo, wheelMat);
+            w.rotation.z = Math.PI / 2;
+            w.position.set(p[0], p[1], p[2]);
+            g.add(w);
+          });
+          g.traverse((o) => {
+            if (o.isMesh) {
+              o.castShadow = false;
+              o.receiveShadow = false;
+            }
+          });
+          return g;
+        }
+        const carColors = [
+          0xe8622c, 0x3a6ea5, 0xd9c24a, 0xffffff, 0x555555, 0x7cb342,
+        ];
+
+        // static parked cars
+        for (let i = 0; i < 5; i++) {
+          const c = makeCar(carColors[i % carColors.length]);
+          c.position.set(58 - 12 + i * 6, 0, -6);
+          c.rotation.y = Math.PI;
+          scene.add(c);
+        }
+
+        // traffic ("probka") system on the road
+        const traffic = [];
+        const TRAFFIC_MAX = 6;
+        const stopLineX = 20;
+        function spawnCar() {
+          if (traffic.length >= TRAFFIC_MAX) return;
+          const c = makeCar(
+            carColors[Math.floor(Math.random() * carColors.length)],
+          );
+          const lane = Math.random() < 0.5 ? -35.5 : -32.5;
+          c.position.set(-160, 0, lane);
+          c.rotation.y = Math.PI / 2;
+          scene.add(c);
+          traffic.push({
+            mesh: c,
+            speed: 0.012 + Math.random() * 0.01,
+            waitingUntil: 0,
+          });
+        }
+        let trafficSpawnTimer = 0;
+        let jamReleaseAt = 0;
+
+        // ---------------------------------------------------------------
+        // Sprite helper (order icons + labels, always face camera)
+        // ---------------------------------------------------------------
+        function makeSprite(text, bg) {
+          const cvs = document.createElement("canvas");
+          cvs.width = 160;
+          cvs.height = 80;
+          const ctx = cvs.getContext("2d");
+          ctx.clearRect(0, 0, 160, 80);
+          if (bg) {
+            ctx.fillStyle = bg;
+            roundRectPath(ctx, 4, 4, 152, 72, 18);
+            ctx.fill();
+          }
+          ctx.font = "46px serif";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText(text, 80, 42);
+          const tex = new THREE.CanvasTexture(cvs);
+          const mat = new THREE.SpriteMaterial({
+            map: tex,
+            depthTest: false,
+            transparent: true,
+          });
+          const spr = new THREE.Sprite(mat);
+          spr.scale.set(1.6, 0.8, 1);
+          spr.renderOrder = 999;
+          return spr;
+        }
+        function roundRectPath(ctx, x, y, w, h, r) {
+          ctx.beginPath();
+          ctx.moveTo(x + r, y);
+          ctx.arcTo(x + w, y, x + w, y + h, r);
+          ctx.arcTo(x + w, y + h, x, y + h, r);
+          ctx.arcTo(x, y + h, x, y, r);
+          ctx.arcTo(x, y, x + w, y, r);
+          ctx.closePath();
+        }
+
+        // ---------------------------------------------------------------
+        // Stanok (machine) factory: burger machine + cola machine
+        // ---------------------------------------------------------------
+        function makeBurgerStanok() {
+          const g = new THREE.Group();
+          const base = box(2.6, 1.5, 2.0, 0xd9852a);
+          base.position.y = 0.75;
+          g.add(base);
+          const panel = box(2.4, 0.6, 0.15, 0x3a2a1a);
+          panel.position.set(0, 1.3, 1.0);
+          g.add(panel);
+          const grill = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.75, 0.75, 0.25, 20),
+            new THREE.MeshStandardMaterial({
+              color: 0x2a2420,
+              metalness: 0.7,
+              roughness: 0.35,
+            }),
+          );
+          grill.position.set(0, 1.55, 0);
+          grill.castShadow = true;
+          g.add(grill);
+          const patty = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.5, 0.5, 0.16, 20),
+            new THREE.MeshStandardMaterial({ color: 0x5a3a2a, roughness: 0.8 }),
+          );
+          patty.position.set(0, 1.7, 0);
+          g.add(patty);
+          const icon = makeSprite("🍔", "rgba(245,197,24,0.95)");
+          icon.position.set(0, 2.7, 0);
+          g.add(icon);
+          g.userData.spinPart = grill;
+          g.userData.bobPart = patty;
+          return g;
+        }
+        function makeColaStanok() {
+          const g = new THREE.Group();
+          const base = box(1.6, 1.6, 1.6, 0xc9392f);
+          base.position.y = 0.8;
+          g.add(base);
+          const cup = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.28, 0.22, 0.6, 12),
+            new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.4 }),
+          );
+          cup.position.set(0, 1.9, 0);
+          g.add(cup);
+          const straw = box(0.06, 0.5, 0.06, 0xff5555);
+          straw.position.set(0.05, 2.3, 0);
+          g.add(straw);
+          const icon = makeSprite("🥤", "rgba(255,255,255,0.92)");
+          icon.position.set(0, 2.9, 0);
+          g.add(icon);
+          g.userData.bobPart = cup;
+          return g;
+        }
+
+        function makeTableSet() {
+          const g = new THREE.Group();
+          const top = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.85, 0.85, 0.12, 16),
+            new THREE.MeshStandardMaterial({ color: 0xf0e2c0, roughness: 0.7 }),
+          );
+          top.position.y = 0.75;
+          top.castShadow = true;
+          top.receiveShadow = true;
+          g.add(top);
+          const leg = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.1, 0.14, 0.75, 10),
+            new THREE.MeshStandardMaterial({ color: 0x8a6a45 }),
+          );
+          leg.position.y = 0.375;
+          g.add(leg);
+          const seatColor = 0xe8622c;
+          const seatOffsets = [
+            [1.15, 0],
+            [-1.15, 0],
+            [0, 1.15],
+            [0, -1.15],
+          ];
+          g.userData.seats = [];
+          seatOffsets.forEach(function (o) {
+            const seat = new THREE.Mesh(
+              new THREE.BoxGeometry(0.55, 0.5, 0.55),
+              new THREE.MeshStandardMaterial({ color: seatColor }),
+            );
+            seat.position.set(o[0], 0.28, o[1]);
+            seat.castShadow = true;
+            seat.receiveShadow = true;
+            g.add(seat);
+            g.userData.seats.push(new THREE.Vector3(o[0], 0, o[1]));
+          });
+          return g;
+        }
+
+        // ---------------------------------------------------------------
+        // Customer humanoid factory (low-poly, no CapsuleGeometry to keep r128-safe)
+        // ---------------------------------------------------------------
+        const skinColors = [0xf0c090, 0xd9a066, 0xa5673f, 0x6b4a2f, 0xf5dcc0];
+        const shirtColors = [
+          0xe8622c, 0x3a6ea5, 0x7cb342, 0xd9a834, 0x8a4aa5, 0xc94d6b,
+        ];
+        function makeCustomer() {
+          const g = new THREE.Group();
+          const skin =
+            skinColors[Math.floor(Math.random() * skinColors.length)];
+          const shirt =
+            shirtColors[Math.floor(Math.random() * shirtColors.length)];
+          const body = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.32, 0.4, 0.9, 10),
+            new THREE.MeshStandardMaterial({ color: shirt }),
+          );
+          body.position.y = 1.05;
+          body.castShadow = true;
+          g.add(body);
+          const head = new THREE.Mesh(
+            new THREE.SphereGeometry(0.28, 12, 12),
+            new THREE.MeshStandardMaterial({ color: skin }),
+          );
+          head.position.y = 1.72;
+          head.castShadow = true;
+          g.add(head);
+          const legL = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.12, 0.12, 0.7, 8),
+            new THREE.MeshStandardMaterial({ color: 0x2a2a2a }),
+          );
+          legL.position.set(-0.14, 0.35, 0);
+          g.add(legL);
+          const legR = legL.clone();
+          legR.position.x = 0.14;
+          g.add(legR);
+          const armL = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.09, 0.09, 0.7, 8),
+            new THREE.MeshStandardMaterial({ color: skin }),
+          );
+          armL.position.set(-0.42, 1.1, 0);
+          g.add(armL);
+          const armR = armL.clone();
+          armR.position.x = 0.42;
+          g.add(armR);
+          g.userData.legs = [legL, legR];
+          g.userData.walkPhase = Math.random() * Math.PI * 2;
+          return g;
+        }
+
+        // ---------------------------------------------------------------
+        // Player (siz) — ekranda ko'rinadigan va yuradigan sotuvchi
+        // ---------------------------------------------------------------
+        function makePlayer() {
+          const g = new THREE.Group();
+          const skinMat = new THREE.MeshStandardMaterial({ color: 0xf0c090 });
+          const shirtMat = new THREE.MeshStandardMaterial({ color: 0x2f7ed8 });
+          const pantsMat = new THREE.MeshStandardMaterial({ color: 0x202b38 });
+          const body = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.38, 0.46, 1.0, 12),
+            shirtMat,
+          );
+          body.position.y = 1.1;
+          body.castShadow = true;
+          g.add(body);
+          const head = new THREE.Mesh(
+            new THREE.SphereGeometry(0.3, 14, 14),
+            skinMat,
+          );
+          head.position.y = 1.82;
+          head.castShadow = true;
+          g.add(head);
+          const hair = new THREE.Mesh(
+            new THREE.SphereGeometry(
+              0.305,
+              12,
+              8,
+              0,
+              Math.PI * 2,
+              0,
+              Math.PI * 0.48,
+            ),
+            new THREE.MeshStandardMaterial({ color: 0x2b1b12 }),
+          );
+          hair.position.y = 1.95;
+          hair.castShadow = true;
+          g.add(hair);
+          const legL = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.13, 0.14, 0.75, 8),
+            pantsMat,
+          );
+          legL.position.set(-0.15, 0.38, 0);
+          g.add(legL);
+          const legR = legL.clone();
+          legR.position.x = 0.15;
+          g.add(legR);
+          const armL = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.1, 0.1, 0.72, 8),
+            skinMat,
+          );
+          armL.position.set(-0.48, 1.12, 0);
+          armL.rotation.z = 0.08;
+          g.add(armL);
+          const armR = armL.clone();
+          armR.position.x = 0.48;
+          armR.rotation.z = -0.08;
+          g.add(armR);
+          const tag = makeSprite("SIZ", "rgba(47,126,216,0.92)");
+          tag.position.set(0, 2.65, 0);
+          tag.scale.set(1.25, 0.55, 1);
+          g.add(tag);
+          g.userData.legs = [legL, legR];
+          g.userData.arms = [armL, armR];
+          g.userData.walkPhase = 0;
+          g.traverse((o) => {
+            if (o.isMesh) {
+              o.castShadow = true;
+              o.receiveShadow = true;
+            }
+          });
+          return g;
+        }
+        const player = makePlayer();
+        player.position.set(-8, 0, 18);
+        scene.add(player);
+        const keys = Object.create(null);
+        const touchMove = { x: 0, z: 0, active: false };
+        window.addEventListener("keydown", (e) => {
+          keys[e.key.toLowerCase()] = true;
+          if (
+            ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", " "].includes(
+              e.key,
+            )
+          )
+            e.preventDefault();
+        });
+        window.addEventListener("keyup", (e) => {
+          keys[e.key.toLowerCase()] = false;
+        });
+        // Qo'ldagi mahsulotlar: Pizza Ready uslubida 5 tadan stack.
+        const inventory = { burger: 0, cola: 0 };
+        const heldFood = new THREE.Group();
+        player.add(heldFood);
+        function makeHeldBurger() {
+          const g = new THREE.Group();
+          const bun1 = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.26, 0.28, 0.1, 16),
+            new THREE.MeshStandardMaterial({ color: 0xf0b44d }),
+          );
+          bun1.position.y = 0.15;
+          g.add(bun1);
+          const patty = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.24, 0.24, 0.08, 16),
+            new THREE.MeshStandardMaterial({ color: 0x5a3424 }),
+          );
+          patty.position.y = 0.05;
+          g.add(patty);
+          const bun2 = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.26, 0.28, 0.1, 16),
+            new THREE.MeshStandardMaterial({ color: 0xf6c25e }),
+          );
+          bun2.position.y = -0.05;
+          g.add(bun2);
+          return g;
+        }
+        function makeHeldCola() {
+          const g = new THREE.Group();
+          const cup = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.16, 0.12, 0.45, 12),
+            new THREE.MeshStandardMaterial({ color: 0xd93b35 }),
+          );
+          cup.position.y = 0.18;
+          g.add(cup);
+          const lid = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.17, 0.17, 0.04, 12),
+            new THREE.MeshStandardMaterial({ color: 0xf3f3f3 }),
+          );
+          lid.position.y = 0.42;
+          g.add(lid);
+          const straw = box(0.035, 0.28, 0.035, 0xffffff);
+          straw.position.set(0.03, 0.56, 0);
+          g.add(straw);
+          return g;
+        }
+        function refreshInventory() {
+          inventoryEl.textContent =
+            "🍔 " + inventory.burger + " / 🥤 " + inventory.cola;
+          while (heldFood.children.length)
+            heldFood.remove(heldFood.children[0]);
+          // O'ng qo'l tomonda burgerlar, chap tomonda kola staki.
+          for (let i = 0; i < inventory.burger; i++) {
+            const b = makeHeldBurger();
+            b.position.set(0.72, 1.15 + 0.14 * i, 0.12);
+            b.rotation.y = 0.2;
+            heldFood.add(b);
+          }
+          for (let i = 0; i < inventory.cola; i++) {
+            const c = makeHeldCola();
+            c.position.set(-0.72, 1.0 + 0.12 * i, 0.1);
+            heldFood.add(c);
+          }
+        }
+        // Mahsulot olish masofasi kengroq qilindi: stanokning yoniga borsangiz
+        // telefonda tugmani bosish bilan aniq olinadi.
+        function near(pos, dist = 3.4) {
+          return (
+            Math.hypot(player.position.x - pos.x, player.position.z - pos.z) <
+            dist
+          );
+        }
+
+        function nearestPickupStation(type) {
+          let best = null;
+          let bestDist = Infinity;
+          for (const p of plots) {
+            if (!p.unlocked) continue;
+            const pos = type === "burger" ? p.worldStanokPos : p.worldColaPos;
+            if (!pos) continue;
+            const d = Math.hypot(
+              player.position.x - pos.x,
+              player.position.z - pos.z,
+            );
+            if (d < bestDist) {
+              bestDist = d;
+              best = { p, pos, d };
+            }
+          }
+          return best;
+        }
+
+        // Mahsulotlar avtomatik, lekin bittalab olinadi.
+        // Burger va kola bir-biridan alohida hisoblanadi.
+        let lastBurgerTake = 0;
+        let lastColaTake = 0;
+        const AUTO_TAKE_DELAY = 500; // har yarim soniyada bittadan
+
+        function takeItem(type, automatic = false) {
+          const target = nearestPickupStation(type);
+
+          if (target && target.d <= 7.0) {
+            if (type === "burger") {
+              if (inventory.burger >= 5) return true;
+
+              inventory.burger++;
+              refreshInventory();
+              toast("1 ta gamburger olindi! 🍔 (" + inventory.burger + "/5)");
+              return true;
+            }
+
+            if (type === "cola") {
+              if (inventory.cola >= 5) return true;
+
+              inventory.cola++;
+              refreshInventory();
+              toast("1 ta kola olindi! 🥤 (" + inventory.cola + "/5)");
+              return true;
+            }
+          }
+
+          if (!automatic) {
+            const label =
+              type === "burger"
+                ? "🍔 Gamburger stanogiga"
+                : "🥤 Kola stanogiga";
+            toast(label + " yaqinroq boring!");
+          }
+          return false;
+        }
+
+        function deliverToCustomer(automatic = false) {
+          const c = customers.find((c) => c.state === "waitingFood");
+          if (!c) return false;
+
+          const distance = Math.hypot(
+            player.position.x - c.mesh.position.x,
+            player.position.z - c.mesh.position.z,
+          );
+
+          // Mijozning oldiga yaqin borganda avtomatik topshiriladi.
+          if (distance > 4.2) return false;
+
+          if (c.orderType === "burger" && inventory.burger < 1) {
+            if (!automatic) toast("Mijoz uchun burger kerak! 🍔");
+            return false;
+          }
+          if (
+            c.orderType === "burger_cola" &&
+            (inventory.burger < 1 || inventory.cola < 1)
+          ) {
+            if (!automatic) toast("Mijoz uchun burger va kola kerak! 🍔🥤");
+            return false;
+          }
+
+          inventory.burger--;
+          if (c.orderType === "burger_cola") inventory.cola--;
+          refreshInventory();
+
+          c.state = "toTable";
+          c._tableTarget = c.table.worldPos
+            .clone()
+            .add(new THREE.Vector3((Math.random() - 0.5) * 0.6, 0, 1.2));
+          if (c.orderSprite) {
+            c.mesh.remove(c.orderSprite);
+            c.orderSprite = null;
+          }
+
+          toast(
+            "Buyurtma avtomatik topshirildi! Mijoz joyiga o‘tirishga ketdi. 🪑🍔",
+          );
+          return true;
+        }
+
+        function tryDeliver() {
+          return deliverToCustomer(false);
+        }
+
+        // O'yinchi stanok yoki mijoz yoniga kelganda avtomatik ishlaydi.
+        // Bu telefon va kompyuterda bir xil.
+        function autoInteract() {
+          if (!running) return;
+
+          const now = performance.now();
+
+          // Burger yonida turganda: 1 → 2 → 3 → 4 → 5 ta.
+          // Bir yo'la 5 ta bo'lib ketmaydi.
+          const burgerStation = nearestPickupStation("burger");
+          const colaStation = nearestPickupStation("cola");
+
+          // MUHIM: faqat qaysi stanokka ENG YAQIN tursangiz, o'sha mahsulot olinadi.
+          // Shuning uchun burger oldida turganda kola hech qachon olinmaydi.
+          const burgerNear = burgerStation && burgerStation.d <= 7.0;
+          const colaNear = colaStation && colaStation.d <= 7.0;
+
+          if (burgerNear && (!colaNear || burgerStation.d < colaStation.d)) {
+            lastColaTake = 0;
+            if (
+              inventory.burger < 5 &&
+              now - lastBurgerTake >= AUTO_TAKE_DELAY
+            ) {
+              lastBurgerTake = now;
+              takeItem("burger", true);
+            }
+          } else if (
+            colaNear &&
+            (!burgerNear || colaStation.d < burgerStation.d)
+          ) {
+            lastBurgerTake = 0;
+            if (inventory.cola < 5 && now - lastColaTake >= AUTO_TAKE_DELAY) {
+              lastColaTake = now;
+              takeItem("cola", true);
+            }
+          } else {
+            // Hech qaysi mahsulot stanogiga yaqin emas.
+            lastBurgerTake = 0;
+            lastColaTake = 0;
+          }
+
+          deliverToCustomer(true);
+        }
+
+        // Stanok yonida turganda mahsulot bittalab qo'shiladi, 5 tagacha.
+        function updatePlayer(dt) {
+          let inputX = 0,
+            inputZ = 0;
+          if (keys["w"] || keys["arrowup"]) inputZ -= 1;
+          if (keys["s"] || keys["arrowdown"]) inputZ += 1;
+          if (keys["a"] || keys["arrowleft"]) inputX -= 1;
+          if (keys["d"] || keys["arrowright"]) inputX += 1;
+          inputX += touchMove.x;
+          inputZ += touchMove.z;
+          const moving = Math.abs(inputX) > 0.01 || Math.abs(inputZ) > 0.01;
+          if (moving) {
+            const len = Math.hypot(inputX, inputZ);
+            inputX /= len;
+            inputZ /= len;
+            const forward = new THREE.Vector3(Math.sin(yaw), 0, Math.cos(yaw));
+            const right = new THREE.Vector3(Math.cos(yaw), 0, -Math.sin(yaw));
+            const move = new THREE.Vector3();
+            move.addScaledVector(forward, -inputZ);
+            move.addScaledVector(right, inputX);
+            move.normalize();
+            const speed = 10.5;
+            player.position.addScaledVector(move, speed * dt);
+            player.position.x = Math.max(
+              -118,
+              Math.min(118, player.position.x),
+            );
+            player.position.z = Math.max(-88, Math.min(108, player.position.z));
+            player.rotation.y = Math.atan2(move.x, move.z);
+            player.userData.walkPhase += dt * 12;
+            const swing = Math.sin(player.userData.walkPhase) * 0.72;
+            player.userData.legs[0].rotation.x = swing;
+            player.userData.legs[1].rotation.x = -swing;
+            player.userData.arms[0].rotation.x = -swing * 0.35;
+            player.userData.arms[1].rotation.x = swing * 0.35;
+          } else {
+            player.userData.legs.forEach((l) => (l.rotation.x = 0));
+            player.userData.arms.forEach((a) => (a.rotation.x = 0));
+          }
+          // Telefon va kompyuterda mahsulot olish/topsirish.
+          if (keys["e"]) {
+            keys["e"] = false;
+            tryDeliver();
+          }
+          if (keys["q"]) {
+            keys["q"] = false;
+            takeItem("burger");
+          }
+          if (keys["r"]) {
+            keys["r"] = false;
+            takeItem("cola");
+          }
+        }
+        refreshInventory();
+        // Telefonlarda click ba'zan kechikishi mumkin. Pointerdown bilan darhol ishlaydi.
+        function bindAction(btn, action) {
+          let last = 0;
+          const run = function (e) {
+            if (e) e.preventDefault();
+            const now = performance.now();
+            if (now - last < 250) return;
+            last = now;
+            action();
+          };
+          btn.addEventListener("pointerdown", run, { passive: false });
+          btn.addEventListener("click", run);
+        }
+        bindAction(takeBurgerBtn, () => takeItem("burger"));
+        bindAction(takeColaBtn, () => takeItem("cola"));
+        bindAction(deliverBtn, () => tryDeliver());
+
+        // ---------------------------------------------------------------
+        // Plots (purchasable restaurant sections)
+        // ---------------------------------------------------------------
+        let coins = 250;
+        coinsEl.textContent = "💰 " + Math.floor(coins);
+        function setCoins(v) {
+          coins = v;
+          coinsEl.textContent = "💰 " + Math.floor(coins);
+          updateBuyBar();
+        }
+
+        const plots = [];
+        // Barcha mijoz joylari boshidan ochiq — qulflar yo'q.
+        const PLOT_DEFS = [
+          { x: -16, z: 14, cost: 0, unlocked: true },
+          { x: 8, z: 14, cost: 0, unlocked: true },
+          { x: -16, z: -2, cost: 0, unlocked: true },
+          { x: 8, z: -2, cost: 0, unlocked: true },
+        ];
+
+        PLOT_DEFS.forEach(function (def, idx) {
+          const plotGroup = new THREE.Group();
+          plotGroup.position.set(def.x, 0, def.z);
+          scene.add(plotGroup);
+
+          const tables = [];
+          const tablePositions = [
+            [-3.2, -2.2],
+            [3.2, -2.2],
+            [-3.2, 3.0],
+            [3.2, 3.0],
+          ];
+          tablePositions.forEach(function (p) {
+            const t = makeTableSet();
+            t.position.set(p[0], 0, p[1]);
+            plotGroup.add(t);
+            tables.push({
+              mesh: t,
+              worldPos: new THREE.Vector3(def.x + p[0], 0, def.z + p[1]),
+              occupied: false,
+              seatIndex: 0,
+            });
+          });
+
+          let stanok = null;
+          let colaStanok = null;
+          if (idx === 0) {
+            stanok = makeBurgerStanok();
+            stanok.position.set(-7.4, 0, 0);
+            plotGroup.add(stanok);
+            colaStanok = makeColaStanok();
+            colaStanok.position.set(-5.0, 0, -3.2);
+            plotGroup.add(colaStanok);
+          } else {
+            stanok = makeBurgerStanok();
+            stanok.position.set(0, 0, -6.4);
+            plotGroup.add(stanok);
+          }
+
+          // ground pad for this plot
+          const pad = new THREE.Mesh(
+            new THREE.PlaneGeometry(13, 11),
+            new THREE.MeshStandardMaterial({ color: 0xd8cdb2, roughness: 0.9 }),
+          );
+          pad.rotation.x = -Math.PI / 2;
+          pad.position.y = 0.005;
+          pad.receiveShadow = true;
+          plotGroup.add(pad);
+
+          // lock fence + sign for locked plots
+          let fence = null;
+          if (!def.unlocked) {
+            fence = new THREE.Group();
+            const fenceMat = new THREE.MeshStandardMaterial({
+              color: 0x8a4a2a,
+              roughness: 0.8,
+            });
+            [
+              [-6.2, -5.2, 0],
+              [6.2, -5.2, 0],
+              [-6.2, 5.2, 0],
+              [6.2, 5.2, 0],
+            ].forEach(function (p) {
+              const post = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.12, 0.12, 1.6, 8),
+                fenceMat,
+              );
+              post.position.set(p[0], 0.8, p[1]);
+              fence.add(post);
+            });
+            const sign = makeSprite("🔒 " + def.cost, "rgba(20,14,8,0.85)");
+            sign.position.set(0, 2.6, 0);
+            sign.scale.set(2.4, 1.2, 1);
+            fence.add(sign);
+            plotGroup.add(fence);
+            plotGroup.children.forEach(function (c) {
+              if (c !== fence && c !== pad) c.visible = false;
+            });
+          }
+
+          plots.push({
+            def,
+            group: plotGroup,
+            tables,
+            stanok,
+            colaStanok,
+            fence,
+            unlocked: def.unlocked,
+            worldStanokPos: stanok
+              ? new THREE.Vector3(
+                  def.x + stanok.position.x,
+                  0,
+                  def.z + stanok.position.z,
+                )
+              : null,
+            worldColaPos: colaStanok
+              ? new THREE.Vector3(
+                  def.x + colaStanok.position.x,
+                  0,
+                  def.z + colaStanok.position.z,
+                )
+              : null,
+          });
+        });
+
+        function nextLockedPlot() {
+          return plots.find(function (p) {
+            return !p.unlocked;
+          });
+        }
+        function updateBuyBar() {
+          const next = nextLockedPlot();
+          if (!next) {
+            buyBarEl.style.display = "none";
+            return;
+          }
+          buyBarEl.style.display = "flex";
+          buyBtn.textContent =
+            "Yangi joy sotib olish — " + next.def.cost + " 💰";
+          buyBtn.classList.toggle("locked", coins < next.def.cost);
+        }
+        buyBtn.addEventListener("click", function () {
+          const next = nextLockedPlot();
+          if (!next) return;
+          if (coins < next.def.cost) {
+            toast("Yetarli tanga yo'q!");
+            return;
+          }
+          setCoins(coins - next.def.cost);
+          next.unlocked = true;
+          next.group.children.forEach(function (c) {
+            c.visible = true;
+          });
+          if (next.fence) {
+            next.group.remove(next.fence);
+            next.fence = null;
+          }
+          // repaint pad to unlocked tone
+          toast("Yangi joy ochildi! 🎉");
+          updateBuyBar();
+        });
+
+        // ---------------------------------------------------------------
+        // Buyurtma xonasi va KASSA
+        // ---------------------------------------------------------------
+        function makeCounter(title, color) {
+          const g = new THREE.Group();
+          const base = box(4.6, 1.2, 1.35, color);
+          base.position.y = 0.6;
+          g.add(base);
+          const top = box(4.9, 0.18, 1.55, 0xf1e7d0, true);
+          top.position.y = 1.28;
+          g.add(top);
+          const sign = makeSprite(title, "rgba(20,20,24,.86)");
+          sign.position.set(0, 2.35, 0);
+          sign.scale.set(2.2, 0.9, 1);
+          g.add(sign);
+          return g;
+        }
+        const orderCounter = makeCounter("BUYURTMA XONASI 📋", 0xc95a35);
+        orderCounter.position.set(0, 0, 22.5);
+        scene.add(orderCounter);
+        const orderPoint = new THREE.Vector3(0, 0, 25.0);
+
+        // ---------------------------------------------------------------
+        // Kirish joyi: eshiksiz, odamlar bemalol kirishi uchun oq yo'lak.
+        // Bu hudud oldindan isEntranceClearZone() bilan daraxt va chiroqlardan tozalangan.
+        // ---------------------------------------------------------------
+        const entranceWalkway = new THREE.Group();
+        const walkMat = new THREE.MeshStandardMaterial({
+          color: 0xf5f5f2,
+          roughness: 0.82,
+        });
+        const walkBorderMat = new THREE.MeshStandardMaterial({
+          color: 0xd7d7d2,
+          roughness: 0.9,
+        });
+        // Oq yo'lak tashqi kirish nuqtasidan BUYURTMA XONASI oldigacha boradi.
+        const walk = new THREE.Mesh(
+          new THREE.PlaneGeometry(5.2, 13.5),
+          walkMat,
+        );
+        walk.rotation.x = -Math.PI / 2;
+        walk.position.set(0, 0.028, 28.4);
+        walk.receiveShadow = true;
+        entranceWalkway.add(walk);
+        // Yo'lak chetlari, yo'l aniq ko'rinishi uchun. Kirish mutlaqo ochiq: eshik yo'q.
+        const edgeL = box(0.14, 0.04, 13.5, 0xffffff);
+        edgeL.position.set(-2.62, 0.04, 28.4);
+        entranceWalkway.add(edgeL);
+        const edgeR = box(0.14, 0.04, 13.5, 0xffffff);
+        edgeR.position.set(2.62, 0.04, 28.4);
+        entranceWalkway.add(edgeR);
+        // Kirish oldidagi oq maydoncha ham ochiq, hech qanday eshik yoki to'siq qo'yilmaydi.
+        const entrancePad = new THREE.Mesh(
+          new THREE.PlaneGeometry(7.2, 4.2),
+          walkMat,
+        );
+        entrancePad.rotation.x = -Math.PI / 2;
+        entrancePad.position.set(0, 0.029, 34.8);
+        entrancePad.receiveShadow = true;
+        entranceWalkway.add(entrancePad);
+        scene.add(entranceWalkway);
+
+        const cashRegister = makeCounter("KASSA 💰", 0x2f7a45);
+        cashRegister.position.set(10.5, 0, 22.5);
+        scene.add(cashRegister);
+        const cashPoint = new THREE.Vector3(10.5, 0, 25.0);
+        const cashDrops = [];
+        function dropCash(amount) {
+          const bill = box(0.75, 0.06, 0.42, 0x58b96b);
+          bill.position.set(
+            cashPoint.x + (Math.random() - 0.5) * 1.5,
+            1.42,
+            cashPoint.z + (Math.random() - 0.5) * 0.6,
+          );
+          bill.rotation.y = Math.random() * Math.PI;
+          scene.add(bill);
+          cashDrops.push({ mesh: bill, life: 5.5, amount });
+        }
+
+        // ---------------------------------------------------------------
+        // Customer lifecycle simulation
+        // ---------------------------------------------------------------
+        const customers = [];
+        // Mijozlar buyurtmani bittalab, navbat bilan aytishi uchun tartib raqami.
+        let customerQueueSerial = 0;
+        const MAX_CUSTOMERS = 9;
+        const SIT_DURATION = 20000; // exactly 20 seconds, as requested
+        const spawnPoints = [
+          new THREE.Vector3(-40, 0, 20),
+          new THREE.Vector3(40, 0, 20),
+          new THREE.Vector3(0, 0, 34),
+        ];
+        const exitPoint = new THREE.Vector3(0, 0, 40);
+
+        function freeTable() {
+          for (const p of plots) {
+            if (!p.unlocked) continue;
+            for (const t of p.tables) {
+              if (!t.occupied) return { plot: p, table: t };
+            }
+          }
+          return null;
+        }
+        function activeStanok() {
+          const unlocked = plots.filter(function (p) {
+            return p.unlocked;
+          });
+          return unlocked[Math.floor(Math.random() * unlocked.length)];
+        }
+
+        function spawnCustomer() {
+          if (customers.length >= MAX_CUSTOMERS) return;
+          const slot = freeTable();
+          if (!slot) return;
+          slot.table.occupied = true;
+
+          const stanokPlot = activeStanok();
+          const spawn =
+            spawnPoints[Math.floor(Math.random() * spawnPoints.length)];
+          const mesh = makeCustomer();
+          mesh.position.copy(spawn);
+          scene.add(mesh);
+
+          const orderType = Math.random() < 0.32 ? "burger_cola" : "burger";
+          const cust = {
+            mesh,
+            // Hamma mijoz buyurtma xonasiga keladi, lekin buyurtmani faqat
+            // navbatning birinchi odami aytadi. Qolganlari kutib turadi.
+            state: "toOrderRoom",
+            table: slot.table,
+            plot: slot.plot,
+            queueId: customerQueueSerial++,
+            queuePos: orderPoint.clone(),
+            sitTimer: 0,
+            orderType,
+            orderSprite: null,
+            speed: 2.4 + Math.random() * 0.8,
+          };
+          customers.push(cust);
+        }
+
+        function moveToward(mesh, target, speed, dt) {
+          const pos = mesh.position;
+          const dx = target.x - pos.x,
+            dz = target.z - pos.z;
+          const dist = Math.sqrt(dx * dx + dz * dz);
+          if (dist < 0.15) return true;
+          const step = Math.min(dist, speed * dt);
+          pos.x += (dx / dist) * step;
+          pos.z += (dz / dist) * step;
+          mesh.rotation.y = Math.atan2(dx, dz);
+          mesh.userData.walkPhase += dt * 6;
+          const swing = Math.sin(mesh.userData.walkPhase) * 0.5;
+          if (mesh.userData.legs) {
+            mesh.userData.legs[0].rotation.x = swing;
+            mesh.userData.legs[1].rotation.x = -swing;
+          }
+          return false;
+        }
+
+        let spawnTimer = 0;
+        function showOrder(c) {
+          const label = c.orderType === "burger_cola" ? "🍔+🥤" : "🍔";
+          const spr = makeSprite(label, "rgba(20,14,8,0.82)");
+          spr.position.set(0, 2.55, 0);
+          spr.scale.set(1.6, 0.8, 1);
+          c.mesh.add(spr);
+          c.orderSprite = spr;
+        }
+        // Navbatdagi mijozlar ro'yxati: birinchi kelgan birinchi xizmat oladi.
+        function getOrderQueue() {
+          return customers
+            .filter(
+              (c) =>
+                c.state === "toOrderRoom" ||
+                c.state === "inQueue" ||
+                c.state === "choosingOrder" ||
+                c.state === "waitingFood",
+            )
+            .sort((a, b) => a.queueId - b.queueId);
+        }
+
+        function updateCustomers(dt, elapsedMs) {
+          spawnTimer -= dt * 1000;
+          if (spawnTimer <= 0) {
+            spawnCustomer();
+            spawnTimer = 1800 + Math.random() * 2400;
+          }
+
+          // Buyurtma xonasi oldidagi navbat joylarini yangilash.
+          const queue = getOrderQueue();
+          const frontBusy = queue.some(
+            (c) => c.state === "choosingOrder" || c.state === "waitingFood",
+          );
+
+          for (let qi = 0; qi < queue.length; qi++) {
+            const c = queue[qi];
+            // Birinchi odam peshtaxta oldida, qolganlari uning orqasida turadi.
+            c.queuePos.copy(orderPoint).add(new THREE.Vector3(0, 0, qi * 2.4));
+            if (c.state === "toOrderRoom" || c.state === "inQueue") {
+              if (moveToward(c.mesh, c.queuePos, c.speed, dt)) {
+                c.state = "inQueue";
+                // Kutayotganda hamma bir xil tomonga, BUYURTMA XONASI tomon qaraydi.
+                c.mesh.rotation.y = Math.PI;
+                if (c.mesh.userData.legs) {
+                  c.mesh.userData.legs[0].rotation.x = 0;
+                  c.mesh.userData.legs[1].rotation.x = 0;
+                }
+              }
+            }
+          }
+
+          // Faqat navbatdagi birinchi mijoz buyurtmasini aytadi.
+          const refreshedQueue = getOrderQueue();
+          const active = refreshedQueue.find(
+            (c) => c.state === "choosingOrder" || c.state === "waitingFood",
+          );
+          const next = refreshedQueue.find((c) => c.state === "inQueue");
+          if (!active && next && refreshedQueue[0] === next) {
+            next.state = "choosingOrder";
+            next.chooseTimer = 0;
+            toast("Navbatdagi mijoz buyurtmasini aytyapti... 📋");
+          }
+
+          for (let i = customers.length - 1; i >= 0; i--) {
+            const c = customers[i];
+            if (c.state === "choosingOrder") {
+              c.mesh.rotation.y = Math.PI;
+              c.chooseTimer += dt * 1000;
+              if (c.chooseTimer > 700) {
+                c.state = "waitingFood";
+                showOrder(c);
+                const text =
+                  c.orderType === "burger_cola"
+                    ? "Yangi buyurtma! 🍔 + 🥤"
+                    : "Yangi buyurtma! 🍔";
+                toast(text + " — faqat shu mijoz kutmoqda!");
+              }
+            } else if (c.state === "waitingFood") {
+              // Mijoz kutayotganda to'g'ri turadi va oldinga qaraydi.
+              c.mesh.rotation.y = Math.PI;
+              if (c.mesh.userData.legs) {
+                c.mesh.userData.legs[0].rotation.x = 0;
+                c.mesh.userData.legs[1].rotation.x = 0;
+              }
+            } else if (c.state === "toTable") {
+              if (moveToward(c.mesh, c._tableTarget, c.speed, dt)) {
+                c.state = "sitting";
+                c.sitTimer = 0;
+                c.mesh.lookAt(
+                  c.table.worldPos.x,
+                  c.mesh.position.y,
+                  c.table.worldPos.z,
+                );
+                if (c.mesh.userData.legs) {
+                  c.mesh.userData.legs[0].rotation.x = 0;
+                  c.mesh.userData.legs[1].rotation.x = 0;
+                }
+                // Mijoz joyiga o'tirgach, keyingi mijoz buyurtma aytishi mumkin.
+                toast("Mijoz joyiga o‘tirdi. Keyingi mijoz navbatda! 🪑");
+              }
+            } else if (c.state === "sitting") {
+              c.sitTimer += dt * 1000;
+              if (c.sitTimer >= SIT_DURATION) {
+                c.state = "toCash";
+                c.cashTarget = cashPoint
+                  .clone()
+                  .add(
+                    new THREE.Vector3(
+                      (Math.random() - 0.5) * 1.8,
+                      0,
+                      (Math.random() - 0.5) * 0.5,
+                    ),
+                  );
+                c.table.occupied = false;
+                toast("Mijoz yeb bo'ldi — KASSA tomon pul to'lashga ketdi! 💰");
+              }
+            } else if (c.state === "toCash") {
+              if (moveToward(c.mesh, c.cashTarget, c.speed * 1.05, dt)) {
+                const pay = c.orderType === "burger_cola" ? 30 : 20;
+                dropCash(pay);
+                setCoins(coins + pay);
+                toast("Mijoz KASSAGA " + pay + " 💰 tashlab ketdi!");
+                c.state = "leaving";
+              }
+            } else if (c.state === "leaving") {
+              if (moveToward(c.mesh, exitPoint, c.speed * 1.15, dt)) {
+                scene.remove(c.mesh);
+                customers.splice(i, 1);
+              }
+            }
+          }
+        }
+
+        // ---------------------------------------------------------------
+        // Traffic update
+        // ---------------------------------------------------------------
+        // Shahar ichidagi qo'shimcha mashinalar: katta ko'chalarda doim harakatlanadi.
+        const cityCruisers = [];
+        for (let i = 0; i < 12; i++) {
+          const c = makeCar(carColors[i % carColors.length]);
+          const horizontal = i % 2 === 0;
+          c.position.set(
+            horizontal ? -105 + i * 17 : i < 6 ? -62 : 62,
+            0,
+            horizontal ? (i % 4 < 2 ? 48 : 88) : -50 + i * 12,
+          );
+          c.rotation.y = horizontal ? Math.PI / 2 : 0;
+          scene.add(c);
+          cityCruisers.push({
+            mesh: c,
+            horizontal,
+            speed: 5 + (i % 4) * 1.3,
+            dir: i % 3 === 0 ? -1 : 1,
+          });
+        }
+        const CAR_GAP = 6.5;
+        function updateTraffic(dt, nowMs) {
+          for (const c of cityCruisers) {
+            if (c.horizontal) {
+              c.mesh.position.x += c.speed * c.dir * dt;
+              if (c.mesh.position.x > 118 || c.mesh.position.x < -118)
+                c.dir *= -1;
+              c.mesh.rotation.y = c.dir > 0 ? Math.PI / 2 : -Math.PI / 2;
+            } else {
+              c.mesh.position.z += c.speed * c.dir * dt;
+              if (c.mesh.position.z > 105 || c.mesh.position.z < -82)
+                c.dir *= -1;
+              c.mesh.rotation.y = c.dir > 0 ? 0 : Math.PI;
+            }
+          }
+          trafficSpawnTimer -= dt * 1000;
+          if (trafficSpawnTimer <= 0) {
+            spawnCar();
+            trafficSpawnTimer = 500 + Math.random() * 700;
+          }
+          // decide jam release cycle
+          if (
+            nowMs > jamReleaseAt &&
+            traffic.length >= 3 &&
+            Math.random() < 0.002
+          ) {
+            jamReleaseAt = nowMs + 3500; // release window: everyone can pass the stop line
+          }
+          const releasing = nowMs < jamReleaseAt;
+          // traffic[] is ordered oldest-first, so index 0 is the car closest to the front of the queue
+          for (let i = 0; i < traffic.length; i++) {
+            const c = traffic[i].mesh;
+            const moveAmount = traffic[i].speed * dt * 60;
+            if (releasing || c.position.x >= stopLineX) {
+              // already past the line, or the jam has cleared: drive straight through
+              c.position.x += moveAmount;
+            } else {
+              // still queueing: drive up to this car's slot behind the stop line, then hold
+              const queueSlot = stopLineX - i * CAR_GAP;
+              if (c.position.x < queueSlot) {
+                c.position.x = Math.min(queueSlot, c.position.x + moveAmount);
+              }
+            }
+          }
+          for (let i = traffic.length - 1; i >= 0; i--) {
+            if (traffic[i].mesh.position.x > 170) {
+              scene.remove(traffic[i].mesh);
+              traffic.splice(i, 1);
+            }
+          }
+        }
+
+        // ---------------------------------------------------------------
+        // Drag-to-look camera control (PUBG/Roblox style: fixed position, rotate view)
+        // ---------------------------------------------------------------
+        // Third-person camera: Pizza Ready uslubida o'yinchi ortidan ergashadi
+        let yaw = 0;
+        let pitch = -0.32;
+        const PITCH_MIN = -0.75,
+          PITCH_MAX = 1.18; // yuqoriga ham bemalol qarash
+        let dragging = false,
+          lastX = 0,
+          lastY = 0;
+        const SENS = 0.0032;
+
+        function onDown(x, y) {
+          dragging = true;
+          lastX = x;
+          lastY = y;
+        }
+        function onMove(x, y) {
+          if (!dragging) return;
+          const dx = x - lastX,
+            dy = y - lastY;
+          lastX = x;
+          lastY = y;
+          yaw -= dx * SENS;
+          pitch -= dy * SENS;
+          pitch = Math.max(PITCH_MIN, Math.min(PITCH_MAX, pitch));
+        }
+        function onUp() {
+          dragging = false;
+        }
+
+        // Telefon joysticki — chap qo'l bilan yurish. O'ng tomondagi bo'sh ekranni surish kamera uchun qoladi.
+        let joyPointer = null;
+        function updateJoystick(clientX, clientY) {
+          const r = joyZone.getBoundingClientRect();
+          const cx = r.left + r.width / 2,
+            cy = r.top + r.height / 2;
+          let dx = clientX - cx,
+            dy = clientY - cy;
+          const max = r.width * 0.34,
+            len = Math.hypot(dx, dy) || 1;
+          if (len > max) {
+            dx = (dx / len) * max;
+            dy = (dy / len) * max;
+          }
+          joyKnob.style.transform = `translate(${dx}px,${dy}px)`;
+          touchMove.x = dx / max;
+          touchMove.z = dy / max;
+          touchMove.active = true;
+        }
+        function resetJoystick() {
+          joyPointer = null;
+          touchMove.x = 0;
+          touchMove.z = 0;
+          touchMove.active = false;
+          joyKnob.style.transform = "translate(0,0)";
+        }
+        joyZone.addEventListener("pointerdown", (e) => {
+          joyPointer = e.pointerId;
+          joyZone.setPointerCapture(e.pointerId);
+          updateJoystick(e.clientX, e.clientY);
+          e.preventDefault();
+        });
+        joyZone.addEventListener("pointermove", (e) => {
+          if (e.pointerId === joyPointer) updateJoystick(e.clientX, e.clientY);
+        });
+        joyZone.addEventListener("pointerup", (e) => {
+          if (e.pointerId === joyPointer) resetJoystick();
+        });
+        joyZone.addEventListener("pointercancel", resetJoystick);
+
+        canvas.addEventListener("mousedown", function (e) {
+          onDown(e.clientX, e.clientY);
+        });
+        window.addEventListener("mousemove", function (e) {
+          onMove(e.clientX, e.clientY);
+        });
+        window.addEventListener("mouseup", onUp);
+
+        // zoom (mouse wheel)
+        let zoom = 34;
+        canvas.addEventListener(
+          "wheel",
+          function (e) {
+            zoom = Math.max(14, Math.min(60, zoom + e.deltaY * 0.02));
+            e.preventDefault();
+          },
+          { passive: false },
+        );
+
+        // touch: single finger = look around, two fingers = pinch to zoom.
+        // Consolidated into one set of listeners so switching between 1 and 2
+        // fingers mid-gesture can't leave stale drag coordinates behind (that
+        // stale-coordinate case was causing the camera to jump).
+        let pinchStartDist = null,
+          pinchStartZoom = 34;
+        canvas.addEventListener(
+          "touchstart",
+          function (e) {
+            if (e.touches.length === 1) {
+              pinchStartDist = null;
+              onDown(e.touches[0].clientX, e.touches[0].clientY);
+            } else if (e.touches.length === 2) {
+              dragging = false;
+              pinchStartDist = Math.hypot(
+                e.touches[0].clientX - e.touches[1].clientX,
+                e.touches[0].clientY - e.touches[1].clientY,
+              );
+              pinchStartZoom = zoom;
+            }
+          },
+          { passive: true },
+        );
+        canvas.addEventListener(
+          "touchmove",
+          function (e) {
+            if (e.touches.length === 1 && dragging) {
+              onMove(e.touches[0].clientX, e.touches[0].clientY);
+              e.preventDefault();
+            } else if (e.touches.length === 2 && pinchStartDist !== null) {
+              const d = Math.hypot(
+                e.touches[0].clientX - e.touches[1].clientX,
+                e.touches[0].clientY - e.touches[1].clientY,
+              );
+              zoom = Math.max(
+                14,
+                Math.min(60, pinchStartZoom - (d - pinchStartDist) * 0.05),
+              );
+              e.preventDefault();
+            }
+          },
+          { passive: false },
+        );
+        canvas.addEventListener("touchend", function (e) {
+          if (e.touches.length === 0) {
+            dragging = false;
+            pinchStartDist = null;
+          } else if (e.touches.length === 1) {
+            // dropped from two fingers to one: re-anchor so the remaining
+            // finger doesn't cause a sudden jump on the next move event
+            pinchStartDist = null;
+            onDown(e.touches[0].clientX, e.touches[0].clientY);
+          }
+        });
+
+        // Kamera doimo o'yinchi ortidan ergashadi. Sichqoncha/barmoq bilan aylantirish mumkin.
+        const cameraTarget = new THREE.Vector3();
+        const cameraDesired = new THREE.Vector3();
+        function updateCamera() {
+          const followDistance = Math.max(8, Math.min(18, zoom * 0.42));
+          const height = 7.2;
+          const horizontal = Math.cos(pitch) * followDistance;
+          cameraDesired.set(
+            player.position.x - Math.sin(yaw) * horizontal,
+            player.position.y + height - Math.sin(pitch) * followDistance,
+            player.position.z - Math.cos(yaw) * horizontal,
+          );
+          // yumshoq follow
+          camera.position.lerp(cameraDesired, 0.12);
+          cameraTarget.set(
+            player.position.x,
+            player.position.y + 1.15,
+            player.position.z,
+          );
+          camera.lookAt(cameraTarget);
+        }
+
+        // ---------------------------------------------------------------
+        // Main loop
+        // ---------------------------------------------------------------
+        let running = false;
+        let lastT = 0;
+        function animate(now) {
+          requestAnimationFrame(animate);
+          if (!lastT) lastT = now;
+          const dt = Math.min((now - lastT) / 1000, 0.05);
+          lastT = now;
+
+          updateDayNight(now);
+          // Fontan suv va rangli chiroqlari jonli harakat qiladi.
+          fountain.rotation.y += dt * 0.05;
+          // Samolyotlar shahar ustida uchadi.
+          for (const p of planes) {
+            p.mesh.position.x += p.speed * dt;
+            p.mesh.position.y = 45 + Math.sin(now * 0.0007 + p.phase) * 4;
+            if (p.mesh.position.x > 190) p.mesh.position.x = -190;
+          }
+          // Bulutlar sekin suzib o'tadi.
+          for (const c of clouds) {
+            c.mesh.position.x += c.speed * dt;
+            if (c.mesh.position.x > 130) c.mesh.position.x = -130;
+          }
+          // Kechasi fontan kuchli otilib-pasayib turadi, markazdagi suv esa doim oqib turadi.
+          for (let i = 0; i < fountainJets.length; i++) {
+            const jet = fountainJets[i];
+            const pulse = 1 + Math.sin(now * 0.004 + i * 1.7) * 0.18;
+            const isMain = i === fountainJets.length - 1;
+            jet.visible = isMain || currentNightAmount > 0.18;
+            jet.scale.y =
+              (isMain
+                ? 0.72 + currentNightAmount * 0.55
+                : currentNightAmount > 0.18
+                  ? currentNightAmount * pulse
+                  : 0.01) * pulse;
+          }
+
+          // Kassadagi tashlangan pullar bir oz ko'rinib turadi.
+          for (let i = cashDrops.length - 1; i >= 0; i--) {
+            const d = cashDrops[i];
+            d.life -= dt;
+            d.mesh.rotation.y += dt * 1.8;
+            if (d.life <= 0) {
+              scene.remove(d.mesh);
+              cashDrops.splice(i, 1);
+            }
+          }
+
+          // ambient machine animation
+          for (const p of plots) {
+            if (p.stanok && p.stanok.userData.spinPart) {
+              p.stanok.userData.spinPart.rotation.y += dt * 1.4;
+            }
+            if (p.stanok && p.stanok.userData.bobPart) {
+              p.stanok.userData.bobPart.position.y =
+                1.7 + Math.sin(now * 0.003) * 0.03;
+            }
+          }
+
+          if (running) {
+            updateCustomers(dt, now);
+            updatePlayer(dt);
+            // Burger, kola va mijozga topshirish endi avtomatik.
+            autoInteract();
+            updateTraffic(dt, now);
+          }
+          updateCamera();
+          renderer.render(scene, camera);
+        }
+        requestAnimationFrame(animate);
+
+        // ---------------------------------------------------------------
+        // Start game
+        // ---------------------------------------------------------------
+        startBtn.addEventListener("click", function () {
+          menuEl.style.display = "none";
+          hudEl.style.display = "flex";
+          updateBuyBar();
+          running = true;
+          gameStartMs = performance.now();
+          workedDays = 1;
+          dayCounterEl.textContent = "📅 Ish kuni: 1";
+          for (let i = 0; i < 3; i++) spawnCustomer();
+          toast(
+            "🍔 Burger yonida turing — bittalab 5 tagacha olasiz. 🥤 Kola ham alohida bittalab 5 tagacha olinadi!",
+          );
+        });
+      })();
+    </script>
+  </body>
+</html>
