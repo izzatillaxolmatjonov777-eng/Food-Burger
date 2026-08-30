@@ -489,7 +489,7 @@
     </div>
 
     <div id="loading">
-      <h1>🍔 Food Burger</h1>
+      <h1>🍔 3D Food Burger</h1>
       <p>Restoran yuklanmoqda...</p>
       <div class="bar"><div id="loadFill"></div></div>
       <div id="loadPct">0%</div>
@@ -732,14 +732,14 @@
         let gameStartMs = null;
         let workedDays = 1;
         function updateDayNight(now) {
-          const phase = (now * 0.00009) % (Math.PI * 2);
+          const phase = (now * (Math.PI * 2 / 60000)) % (Math.PI * 2);
           const daylight = Math.max(0.08, (Math.sin(phase) + 1) * 0.5);
           skyColor.copy(nightSky).lerp(daySky, daylight);
           scene.background.copy(skyColor);
           scene.fog.color.copy(skyColor);
-          hemi.intensity = 0.18 + 0.9 * daylight;
-          fill.intensity = 0.06 + 0.34 * daylight;
-          sun.intensity = 0.12 + 1.1 * daylight;
+          hemi.intensity = 0.10 + 0.42 * daylight;
+          fill.intensity = 0.04 + 0.16 * daylight;
+          sun.intensity = 0.05 + 0.48 * daylight;
           sun.position.set(Math.cos(phase) * 55, 8 + Math.sin(phase) * 52, 28);
           const nightAmount = 1 - daylight;
           currentNightAmount = nightAmount;
@@ -1387,7 +1387,7 @@
         const planes = [];
         for (let i = 0; i < 4; i++) {
           const plane = makePlane();
-          plane.position.set(-170 + i * 85, 42 + i * 10, -80 - i * 15);
+          plane.position.set(-220 + i * 120, 430 + i * 15, -140 - i * 25);
           plane.rotation.y = -Math.PI / 2; // samolyot +X tomonga harakat qilsa, burni ham oldinga qaraydi
           scene.add(plane);
           planes.push({ mesh: plane, speed: 9 + i * 1.5, phase: i * 1.7 });
@@ -1925,6 +1925,8 @@
           refreshInventory();
 
           c.state = "toTable";
+          // Buyurtma topshirilishi bilan bu mijoz navbatdan chiqadi.
+          // Shuning uchun keyingi mijoz darhol buyurtma bera oladi.
           c._tableTarget = c.table.worldPos
             .clone()
             .add(new THREE.Vector3((Math.random() - 0.5) * 0.6, 0, 1.2));
@@ -2008,7 +2010,7 @@
             move.addScaledVector(forward, -inputZ);
             move.addScaledVector(right, inputX);
             move.normalize();
-            const speed = 10.5;
+            const speed = 16.5;
             player.position.addScaledVector(move, speed * dt);
             player.position.x = Math.max(
               -118,
@@ -2305,8 +2307,8 @@
         const customers = [];
         // Mijozlar buyurtmani bittalab, navbat bilan aytishi uchun tartib raqami.
         let customerQueueSerial = 0;
-        const MAX_CUSTOMERS = 9;
-        const SIT_DURATION = 20000; // exactly 20 seconds, as requested
+        const MAX_CUSTOMERS = 24;
+        const SIT_DURATION = 12000; // exactly 20 seconds, as requested
         const spawnPoints = [
           new THREE.Vector3(-40, 0, 20),
           new THREE.Vector3(40, 0, 20),
@@ -2406,7 +2408,7 @@
           spawnTimer -= dt * 1000;
           if (spawnTimer <= 0) {
             spawnCustomer();
-            spawnTimer = 1800 + Math.random() * 2400;
+            spawnTimer = 700 + Math.random() * 900;
           }
 
           // Buyurtma xonasi oldidagi navbat joylarini yangilash.
@@ -2451,6 +2453,7 @@
               c.chooseTimer += dt * 1000;
               if (c.chooseTimer > 700) {
                 c.state = "waitingFood";
+                c.waitTimer = 0;
                 showOrder(c);
                 const text =
                   c.orderType === "burger_cola"
@@ -2459,11 +2462,27 @@
                 toast(text + " — faqat shu mijoz kutmoqda!");
               }
             } else if (c.state === "waitingFood") {
-              // Mijoz kutayotganda to'g'ri turadi va oldinga qaraydi.
+              // Mijoz buyurtmani kutmoqda.
               c.mesh.rotation.y = Math.PI;
               if (c.mesh.userData.legs) {
                 c.mesh.userData.legs[0].rotation.x = 0;
                 c.mesh.userData.legs[1].rotation.x = 0;
+              }
+
+              // Real restoran rejimi: buyurtma 3 soniyada tayyor.
+              c.waitTimer = (c.waitTimer || 0) + dt * 1000;
+              if (c.waitTimer >= 3000) {
+                c.state = "toTable";
+                c._tableTarget = c.table.worldPos
+                  .clone()
+                  .add(new THREE.Vector3((Math.random() - 0.5) * 0.6, 0, 1.2));
+
+                if (c.orderSprite) {
+                  c.mesh.remove(c.orderSprite);
+                  c.orderSprite = null;
+                }
+
+                toast("Buyurtma tayyor! Mijoz stoliga ketdi. 🪑🍔");
               }
             } else if (c.state === "toTable") {
               if (moveToward(c.mesh, c._tableTarget, c.speed, dt)) {
@@ -2599,7 +2618,7 @@
         let dragging = false,
           lastX = 0,
           lastY = 0;
-        const SENS = 0.0032;
+        const SENS = 0.0065;
 
         function onDown(x, y) {
           dragging = true;
@@ -2612,8 +2631,9 @@
             dy = y - lastY;
           lastX = x;
           lastY = y;
-          yaw -= dx * SENS;
-          pitch -= dy * SENS;
+          const swipeSpeed = Math.min(2.2, 1 + Math.hypot(dx, dy) * 0.018);
+          yaw += dx * SENS * swipeSpeed;
+          pitch -= dy * SENS * swipeSpeed;
           pitch = Math.max(PITCH_MIN, Math.min(PITCH_MAX, pitch));
         }
         function onUp() {
@@ -2756,6 +2776,237 @@
           camera.lookAt(cameraTarget);
         }
 
+
+        // ---------------------------------------------------------------
+        // SHAHAR YANGILANISHI: Toshkent teleminorasi va futbol stadioni
+        // 1 world unit = 1 metr. Teleminora balandligi 375 m.
+        // Futbol maydoni 105 x 68 m.
+        // ---------------------------------------------------------------
+        camera.far = 900;
+        if (scene.fog) scene.fog.far = 520;
+        camera.updateProjectionMatrix();
+
+        const landmarkLights = [];
+        const footballPlayers = [];
+
+        function addTashkentTower(x, z) {
+          const g = new THREE.Group();
+          const concrete = new THREE.MeshStandardMaterial({
+            color: 0xb7b6b0,
+            roughness: 0.72,
+          });
+          const metal = new THREE.MeshStandardMaterial({
+            color: 0x59636a,
+            metalness: 0.45,
+            roughness: 0.35,
+          });
+
+          const base = new THREE.Mesh(
+            new THREE.CylinderGeometry(12, 18, 8, 24),
+            concrete
+          );
+          base.position.y = 4;
+          g.add(base);
+
+          const lower = new THREE.Mesh(
+            new THREE.CylinderGeometry(3.2, 6.0, 165, 18),
+            concrete
+          );
+          lower.position.y = 90.5;
+          g.add(lower);
+
+          const deck = new THREE.Mesh(
+            new THREE.CylinderGeometry(13.5, 13.5, 7, 24),
+            metal
+          );
+          deck.position.y = 177;
+          g.add(deck);
+
+          const upper = new THREE.Mesh(
+            new THREE.CylinderGeometry(1.2, 3.0, 145, 16),
+            concrete
+          );
+          upper.position.y = 253;
+          g.add(upper);
+
+          const antenna = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.35, 0.8, 90, 12),
+            metal
+          );
+          antenna.position.y = 370;
+          g.add(antenna);
+
+          g.position.set(x, 0, z);
+          scene.add(g);
+        }
+
+        function addFootballStadium(x, z) {
+          const g = new THREE.Group();
+          const concrete = new THREE.MeshStandardMaterial({
+            color: 0xaeb4b8,
+            roughness: 0.85,
+          });
+          const grassMat = new THREE.MeshStandardMaterial({
+            color: 0x3f8f45,
+            roughness: 1,
+          });
+          const lineMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+
+          const outer = new THREE.Mesh(
+            new THREE.BoxGeometry(145, 9, 108),
+            concrete
+          );
+          outer.position.y = 4.5;
+          g.add(outer);
+
+          const field = new THREE.Mesh(
+            new THREE.PlaneGeometry(105, 68),
+            grassMat
+          );
+          field.rotation.x = -Math.PI / 2;
+          field.position.y = 9.03;
+          g.add(field);
+
+          const centerLine = new THREE.Mesh(
+            new THREE.BoxGeometry(0.35, 0.03, 68),
+            lineMat
+          );
+          centerLine.position.y = 9.06;
+          g.add(centerLine);
+
+          const centerCircle = new THREE.Mesh(
+            new THREE.RingGeometry(8.8, 9.15, 32),
+            lineMat
+          );
+          centerCircle.rotation.x = -Math.PI / 2;
+          centerCircle.position.y = 9.065;
+          g.add(centerCircle);
+
+          for (const sx of [-52.5, 52.5]) {
+            const goal = new THREE.Group();
+            const postMat = new THREE.MeshStandardMaterial({
+              color: 0xffffff,
+              roughness: 0.7,
+            });
+
+            for (const gz of [-3.66, 3.66]) {
+              const post = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.18, 0.18, 2.44, 8),
+                postMat
+              );
+              post.position.set(sx, 10.25, gz);
+              goal.add(post);
+            }
+
+            const bar = new THREE.Mesh(
+              new THREE.CylinderGeometry(0.18, 0.18, 7.32, 8),
+              postMat
+            );
+            bar.rotation.z = Math.PI / 2;
+            bar.position.set(sx, 11.47, 0);
+            goal.add(bar);
+            g.add(goal);
+          }
+
+          for (const sx of [-66, 66]) {
+            for (const sz of [-47, 47]) {
+              const pole = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.35, 0.5, 28, 10),
+                new THREE.MeshStandardMaterial({
+                  color: 0x3d444a,
+                  roughness: 0.55,
+                })
+              );
+              pole.position.set(sx, 23, sz);
+              g.add(pole);
+
+              const lampMat = new THREE.MeshStandardMaterial({
+                color: 0xfff2c4,
+                emissive: 0xffe4a3,
+                emissiveIntensity: 0,
+              });
+              const lamp = new THREE.Mesh(
+                new THREE.BoxGeometry(8, 1, 1.2),
+                lampMat
+              );
+              lamp.position.set(sx, 37, sz);
+              g.add(lamp);
+              landmarkLights.push(lampMat);
+            }
+          }
+
+          g.position.set(x, 0, z);
+          scene.add(g);
+
+          const ball = new THREE.Mesh(
+            new THREE.SphereGeometry(0.55, 12, 10),
+            new THREE.MeshStandardMaterial({
+              color: 0xffffff,
+              roughness: 0.7,
+            })
+          );
+          ball.position.set(x, 9.65, z);
+          scene.add(ball);
+
+          // 22 futbolchi: 11 ga 11.
+          for (let i = 0; i < 22; i++) {
+            const p = makeCustomer();
+            p.scale.setScalar(0.72);
+            p.position.set(
+              x + (Math.random() - 0.5) * 86,
+              9.05,
+              z + (Math.random() - 0.5) * 54
+            );
+            scene.add(p);
+            footballPlayers.push({
+              mesh: p,
+              phase: i * 0.63,
+              cx: x,
+              cz: z,
+            });
+          }
+
+          return ball;
+        }
+
+        // O'tloqdagi joylashuvlar
+        addTashkentTower(-100, -66);
+        const stadiumBall = addFootballStadium(250, -200);
+
+        function updateLandmarks(now, dt) {
+          const daylight = Math.max(
+            0.08,
+            (Math.sin(now * (Math.PI * 2 / 60000)) + 1) * 0.5
+          );
+          const night = 1 - daylight;
+
+          for (const lm of landmarkLights) {
+            lm.emissiveIntensity = night * 2.5;
+          }
+
+          // Stadionda futbolchilar doim harakat qiladi.
+          for (const p of footballPlayers) {
+            p.mesh.position.x =
+              p.cx +
+              Math.sin(now * 0.0014 + p.phase) *
+                (18 + (p.phase % 4) * 5);
+            p.mesh.position.z =
+              p.cz +
+              Math.cos(now * 0.0018 + p.phase * 1.7) *
+                (10 + (p.phase % 5) * 3.5);
+            p.mesh.rotation.y += dt * 0.8;
+          }
+
+          // Futbol to'pi ham harakatlanadi.
+          stadiumBall.position.x =
+            250 + Math.sin(now * 0.0022) * 14;
+          stadiumBall.position.z =
+            -200 + Math.cos(now * 0.0027) * 9;
+          stadiumBall.position.y =
+            9.65 + Math.abs(Math.sin(now * 0.006)) * 0.7;
+        }
+
+
         // ---------------------------------------------------------------
         // Main loop
         // ---------------------------------------------------------------
@@ -2768,12 +3019,13 @@
           lastT = now;
 
           updateDayNight(now);
+          updateLandmarks(now, dt);
           // Fontan suv va rangli chiroqlari jonli harakat qiladi.
           fountain.rotation.y += dt * 0.05;
           // Samolyotlar shahar ustida uchadi.
           for (const p of planes) {
             p.mesh.position.x += p.speed * dt;
-            p.mesh.position.y = 45 + Math.sin(now * 0.0007 + p.phase) * 4;
+            p.mesh.position.y = 430 + Math.sin(now * 0.0007 + p.phase) * 15;
             if (p.mesh.position.x > 190) p.mesh.position.x = -190;
           }
           // Bulutlar sekin suzib o'tadi.
