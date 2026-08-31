@@ -741,12 +741,12 @@
         let gameStartMs = null;
         let workedDays = 1;
         function updateDayNight(now) {
-          const phase = (now * (Math.PI * 2 / 60000)) % (Math.PI * 2);
+          const phase = (now * ((Math.PI * 2) / 60000)) % (Math.PI * 2);
           const daylight = Math.max(0.08, (Math.sin(phase) + 1) * 0.5);
           skyColor.copy(nightSky).lerp(daySky, daylight);
           scene.background.copy(skyColor);
           scene.fog.color.copy(skyColor);
-          hemi.intensity = 0.10 + 0.42 * daylight;
+          hemi.intensity = 0.1 + 0.42 * daylight;
           fill.intensity = 0.04 + 0.16 * daylight;
           sun.intensity = 0.05 + 0.48 * daylight;
           sun.position.set(Math.cos(phase) * 55, 8 + Math.sin(phase) * 52, 28);
@@ -1347,7 +1347,10 @@
           if (Math.abs(x + 62) < 9 || Math.abs(x - 62) < 9) return false;
           if (Math.abs(x + 96) < 8 || Math.abs(x - 96) < 8) return false;
           // Futbol stadioni joylashgan hudud ham bo'sh qoladi.
-          if (Math.hypot(x - STADIUM_CLEAR_X, z - STADIUM_CLEAR_Z) < STADIUM_CLEAR_R)
+          if (
+            Math.hypot(x - STADIUM_CLEAR_X, z - STADIUM_CLEAR_Z) <
+            STADIUM_CLEAR_R
+          )
             return false;
           return true;
         }
@@ -1368,7 +1371,9 @@
         // Qo'shimcha shahar manzarasi + osmonda uchadigan samolyotlar
         // ---------------------------------------------------------------
         for (let i = 0; i < 18; i++) {
-          let x, z, tries = 0;
+          let x,
+            z,
+            tries = 0;
           do {
             const ang = Math.random() * Math.PI * 2,
               rad = 95 + Math.random() * 70;
@@ -1695,7 +1700,12 @@
           ctx.fillRect(0, stripe * 4, w, stripe * 0.35);
           // Oq
           ctx.fillStyle = "#ffffff";
-          ctx.fillRect(0, stripe * 4 + stripe * 0.35, w, stripe * 0.65 + stripe);
+          ctx.fillRect(
+            0,
+            stripe * 4 + stripe * 0.35,
+            w,
+            stripe * 0.65 + stripe,
+          );
           // Qizil ingichka chiziq (pastki)
           ctx.fillStyle = "#ce1126";
           ctx.fillRect(0, stripe * 5.35 + stripe * 0.65, w, stripe * 0.35);
@@ -1724,7 +1734,7 @@
           function star(cx, cy, r) {
             ctx.beginPath();
             for (let i = 0; i < 5; i++) {
-              const a1 = (-Math.PI / 2) + (i * 2 * Math.PI) / 5;
+              const a1 = -Math.PI / 2 + (i * 2 * Math.PI) / 5;
               const a2 = a1 + Math.PI / 5;
               const x1 = cx + Math.cos(a1) * r,
                 y1 = cy + Math.sin(a1) * r;
@@ -1789,7 +1799,10 @@
             side: THREE.DoubleSide,
             roughness: 0.75,
           });
-          const flag = new THREE.Mesh(new THREE.PlaneGeometry(2.6, 1.3), flagMat);
+          const flag = new THREE.Mesh(
+            new THREE.PlaneGeometry(2.6, 1.3),
+            flagMat,
+          );
           flag.position.set(1.4, 6.7, 0);
           g.add(flag);
           g.position.set(x, 0, z);
@@ -2539,7 +2552,7 @@
           g.add(sign);
           return g;
         }
-        const orderCounter = makeCounter("BUYURTMA XONASI 📋", 0xc95a35);
+        const orderCounter = makeCounter("BUYURTMA 📋", 0xc95a35);
         orderCounter.position.set(0, 0, 22.5);
         scene.add(orderCounter);
         const orderPoint = new THREE.Vector3(0, 0, 25.0);
@@ -3079,7 +3092,6 @@
           camera.lookAt(cameraTarget);
         }
 
-
         // ---------------------------------------------------------------
         // SHAHAR YANGILANISHI: Toshkent teleminorasi va futbol stadioni
         // 1 world unit = 1 metr. Teleminora balandligi 375 m.
@@ -3106,35 +3118,35 @@
 
           const base = new THREE.Mesh(
             new THREE.CylinderGeometry(12, 18, 8, 24),
-            concrete
+            concrete,
           );
           base.position.y = 4;
           g.add(base);
 
           const lower = new THREE.Mesh(
             new THREE.CylinderGeometry(3.2, 6.0, 165, 18),
-            concrete
+            concrete,
           );
           lower.position.y = 90.5;
           g.add(lower);
 
           const deck = new THREE.Mesh(
             new THREE.CylinderGeometry(13.5, 13.5, 7, 24),
-            metal
+            metal,
           );
           deck.position.y = 177;
           g.add(deck);
 
           const upper = new THREE.Mesh(
             new THREE.CylinderGeometry(1.2, 3.0, 145, 16),
-            concrete
+            concrete,
           );
           upper.position.y = 253;
           g.add(upper);
 
           const antenna = new THREE.Mesh(
             new THREE.CylinderGeometry(0.35, 0.8, 90, 12),
-            metal
+            metal,
           );
           antenna.position.y = 370;
           g.add(antenna);
@@ -3176,14 +3188,14 @@
 
           const outer = new THREE.Mesh(
             new THREE.BoxGeometry(145, 9, 108),
-            concrete
+            concrete,
           );
           outer.position.y = 4.5;
           g.add(outer);
 
           const field = new THREE.Mesh(
             new THREE.PlaneGeometry(105, 68),
-            grassMat
+            grassMat,
           );
           field.rotation.x = -Math.PI / 2;
           field.position.y = 9.03;
@@ -3191,14 +3203,14 @@
 
           const centerLine = new THREE.Mesh(
             new THREE.BoxGeometry(0.35, 0.03, 68),
-            lineMat
+            lineMat,
           );
           centerLine.position.y = 9.06;
           g.add(centerLine);
 
           const centerCircle = new THREE.Mesh(
             new THREE.RingGeometry(8.8, 9.15, 32),
-            lineMat
+            lineMat,
           );
           centerCircle.rotation.x = -Math.PI / 2;
           centerCircle.position.y = 9.065;
@@ -3214,7 +3226,7 @@
             for (const gz of [-3.66, 3.66]) {
               const post = new THREE.Mesh(
                 new THREE.CylinderGeometry(0.18, 0.18, 2.44, 8),
-                postMat
+                postMat,
               );
               post.position.set(sx, 10.25, gz);
               goal.add(post);
@@ -3222,7 +3234,7 @@
 
             const bar = new THREE.Mesh(
               new THREE.CylinderGeometry(0.18, 0.18, 7.32, 8),
-              postMat
+              postMat,
             );
             bar.rotation.z = Math.PI / 2;
             bar.position.set(sx, 11.47, 0);
@@ -3237,7 +3249,7 @@
                 new THREE.MeshStandardMaterial({
                   color: 0x3d444a,
                   roughness: 0.55,
-                })
+                }),
               );
               pole.position.set(sx, 23, sz);
               g.add(pole);
@@ -3249,7 +3261,7 @@
               });
               const lamp = new THREE.Mesh(
                 new THREE.BoxGeometry(8, 1, 1.2),
-                lampMat
+                lampMat,
               );
               lamp.position.set(sx, 37, sz);
               g.add(lamp);
@@ -3266,9 +3278,9 @@
             new THREE.MeshStandardMaterial({
               color: 0xffffff,
               roughness: 0.7,
-            })
+            }),
           );
-          ball.position.set(x, (9.65) * (scale || 1), z);
+          ball.position.set(x, 9.65 * (scale || 1), z);
           scene.add(ball);
 
           // 22 futbolchi: 11 ga 11.
@@ -3278,7 +3290,7 @@
             p.position.set(
               x + (Math.random() - 0.5) * 86 * (scale || 1),
               9.05 * (scale || 1),
-              z + (Math.random() - 0.5) * 54 * (scale || 1)
+              z + (Math.random() - 0.5) * 54 * (scale || 1),
             );
             scene.add(p);
             footballPlayers.push({
@@ -3306,7 +3318,7 @@
         function updateLandmarks(now, dt) {
           const daylight = Math.max(
             0.08,
-            (Math.sin(now * (Math.PI * 2 / 60000)) + 1) * 0.5
+            (Math.sin(now * ((Math.PI * 2) / 60000)) + 1) * 0.5,
           );
           const night = 1 - daylight;
 
@@ -3348,7 +3360,9 @@
         helperTag.position.set(0, 2.35, 0);
         helperTag.scale.set(1.9, 0.7, 1);
         helper.add(helperTag);
-        helper.position.copy(player.position).add(new THREE.Vector3(2.2, 0, 2.2));
+        helper.position
+          .copy(player.position)
+          .add(new THREE.Vector3(2.2, 0, 2.2));
         scene.add(helper);
 
         // Yordamchi qo'lidagi burger/kola ham o'yinchinikiga o'xshab
