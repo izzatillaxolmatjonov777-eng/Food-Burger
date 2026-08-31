@@ -32,7 +32,7 @@
       #loading {
         position: fixed;
         inset: 0;
-        background: linear-gradient(160deg, #2b1a0f, #1a1008);
+        background-image: url(./ng.png);
         display: flex;
         flex-direction: column;
         align-items: center;
@@ -44,7 +44,7 @@
         font-size: 32px;
         margin: 0 0 6px;
         color: #f5c518;
-        text-shadow: 2px 2px 0 #3a1e0a;
+        text-shadow: 2px 2px 0 #c65e14;
         letter-spacing: 1px;
       }
       #loading p {
@@ -489,14 +489,14 @@
     </div>
 
     <div id="loading">
-      <h1>🍔 3D Food Burger</h1>
+      <h1 class="">🍔 3D Food Burger</h1>
       <p>Restoran yuklanmoqda...</p>
       <div class="bar"><div id="loadFill"></div></div>
       <div id="loadPct">0%</div>
     </div>
 
     <div id="menu">
-      <h1>🍔 Food Burger</h1>
+      <h1>🍔 3D Food Burger</h1>
       <p>
         Juda oson: 1) Buyurtma kuting. 2) Stanok yoniga boring. 3) 🍔 yoki 🥤
         tugmasini bosing. 4) KASSA oldiga boring va TOPSHIRISH tugmasini bosing.
@@ -680,9 +680,18 @@
           powerPreference: "high-performance",
         });
         // O'yin qotmasligi uchun render sifati yengillashtirildi.
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.25));
-        renderer.shadowMap.enabled = true;
-        renderer.shadowMap.type = THREE.PCFShadowMap;
+        // Telefon/planshetlarda (barmoq bilan boshqariladigan qurilmalar) piksel
+        // nisbati pastroq qilib qo'yildi — bu GPU yukini kamaytirib, o'yin
+        // qotib qolishining oldini oladi.
+        const isTouchDevice =
+          window.matchMedia && window.matchMedia("(pointer: coarse)").matches;
+        renderer.setPixelRatio(
+          Math.min(window.devicePixelRatio || 1, isTouchDevice ? 1 : 1.5),
+        );
+        // Soyalar (shadow map) eng katta ishlash xarajatini beradi, ayniqsa
+        // telefonlarda. O'yin hech qachon qotmasligi uchun soyalar butunlay
+        // o'chirilgan.
+        renderer.shadowMap.enabled = false;
 
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x8fd0ef);
@@ -966,7 +975,11 @@
           bulb.position.y = 5.55;
           g.add(bulb);
           // Har bir ustunga alohida PointLight berilsa o'yin qotadi. Har 4-chisi haqiqiy yorug'lik beradi, qolganlari emissive lampochka bilan yorqin ko'rinadi.
-          const activeLight = streetLampIndex++ % 4 === 0;
+          // Real vaqtli PointLight sonini keskin kamaytirdik: 150+ chiroqdan
+          // atigi ~10 tasi haqiqiy yorug'lik beradi, qolganlari faqat
+          // yorqin ko'rinadigan (emissive) lampochka bo'lib qoladi. Juda
+          // ko'p real vaqtli chiroq telefonlarda o'yinni qotirib qo'yardi.
+          const activeLight = streetLampIndex++ % 14 === 0;
           let light = null;
           if (activeLight) {
             light = new THREE.PointLight(0xffc56b, 0, 16, 2);
@@ -1023,6 +1036,39 @@
           scene.add(shade);
           nightLights.push({ light: lamp, mat: restaurantLightMat });
         });
+
+        // Har bir restoran uchastkasi (plot) chekkasiga qo'yiladigan
+        // burchak-chiroqlari — tunda restoran atrofi yorug' bo'lib turadi.
+        // Bitta umumiy material ishlatiladi (kam xotira), har bir uchastkada
+        // faqat bitta haqiqiy chiroq (PointLight) yonadi, qolgan 3 burchak
+        // faqat yorqin ko'rinadi — bu ishlashni sekinlashtirmaydi.
+        const cornerLampMat = new THREE.MeshStandardMaterial({
+          color: 0xffe2a3,
+          emissive: 0xffc15c,
+          emissiveIntensity: 0,
+        });
+        function addPlotCornerLamp(parentGroup, lx, lz, withLight) {
+          const g = new THREE.Group();
+          const pole = box(0.1, 3.0, 0.1, 0x2a2a2a, true);
+          pole.position.y = 1.5;
+          g.add(pole);
+          const bulb = new THREE.Mesh(
+            new THREE.SphereGeometry(0.22, 10, 10),
+            cornerLampMat,
+          );
+          bulb.position.y = 3.05;
+          g.add(bulb);
+          if (withLight) {
+            const lt = new THREE.PointLight(0xffc56b, 0, 11, 2);
+            lt.position.y = 3.0;
+            g.add(lt);
+            nightLights.push({ light: lt, mat: cornerLampMat });
+          } else {
+            nightLights.push({ light: null, mat: cornerLampMat });
+          }
+          g.position.set(lx, 0, lz);
+          parentGroup.add(g);
+        }
 
         // Fontan alohida markaziy maydonchada: stol, yo'l va mijoz joylarining ustiga chiqmaydi.
         const fountainIsland = new THREE.Mesh(
@@ -1192,32 +1238,40 @@
           const roof = box(w * 1.04, 0.35, d * 1.04, 0x2a3038, true);
           roof.position.y = h / 2 + 0.18;
           mesh.add(roof);
-          // Ko'p sonli haqiqiy oynaga o'xshash yoritilgan derazalar.
+          // MUHIM TEZLIK TUZATISHI: ilgari har bir binoda alohida-alohida
+          // (ba'zan 60-80 tagacha!) deraza mesh yasalar edi — yuzlab
+          // binoda bu minglab qo'shimcha draw call degani, aynan shu
+          // telefonda o'yinni qotirib qo'yayotgan edi. Endi bitta binoning
+          // butun oynalar tartibi BITTA canvas texture'ga chizilib, faqat
+          // old va orqa devorga yopishtiriladi — ko'rinishi deyarli bir xil,
+          // lekin mesh soni ~80x kamayadi.
           const rows = Math.max(4, Math.floor(h / 3.6)),
             cols = Math.max(3, Math.floor(w / 2.8));
+          const winTex = windowTexture(rows, cols, "#ffcf7a");
           const winMat = new THREE.MeshStandardMaterial({
             color: 0xffe6a1,
+            map: winTex,
             emissive: 0xffa72b,
+            emissiveMap: winTex,
             emissiveIntensity: 0.12,
             roughness: 0.35,
+            transparent: true,
+            opacity: 0.95,
           });
           buildingWindowMats.push(winMat);
-          for (let r = 0; r < rows; r++)
-            for (let c = 0; c < cols; c++)
-              if (Math.random() < 0.72) {
-                const ww = Math.min(0.85, (w / (cols + 1)) * 0.55),
-                  wh = Math.min(1.15, (h / (rows + 1)) * 0.62);
-                const win = new THREE.Mesh(
-                  new THREE.PlaneGeometry(ww, wh),
-                  winMat,
-                );
-                win.position.set(
-                  -w / 2 + ((c + 1) * w) / (cols + 1),
-                  -h / 2 + ((r + 1) * h) / (rows + 1),
-                  d / 2 + 0.085,
-                );
-                mesh.add(win);
-              }
+          const winFront = new THREE.Mesh(
+            new THREE.PlaneGeometry(w * 0.92, h * 0.9),
+            winMat,
+          );
+          winFront.position.set(0, 0, d / 2 + 0.09);
+          mesh.add(winFront);
+          const winBack = new THREE.Mesh(
+            new THREE.PlaneGeometry(w * 0.92, h * 0.9),
+            winMat,
+          );
+          winBack.rotation.y = Math.PI;
+          winBack.position.set(0, 0, -d / 2 - 0.09);
+          mesh.add(winBack);
           scene.add(mesh);
           return mesh;
         }
@@ -1262,14 +1316,39 @@
           scene.add(g);
           return g;
         }
-        // Daraxtlar faqat o'tloqda: yo'lning o'rtasi va yo'l chetlariga qo'yilmaydi.
+        // Daraxtlar faqat o'tloqda: yo'lning o'rtasi, yo'l chetlariga,
+        // KIRISH QISMI, va RESTORAN UCHASTKALARI (ochiq + qulflangan
+        // sotib olinadigan joylar) ustiga hech qachon qo'yilmaydi.
+        const RESTAURANT_PLOT_SPOTS = [
+          [-16, 14],
+          [8, 14],
+          [-16, -2],
+          [8, -2],
+          [-38, 6], // qulflangan chap uchastka — bayroq ostidagi kirish yaqinida
+          [27, 6], // qulflangan o'ng uchastka
+        ];
+        const STADIUM_CLEAR_X = 0,
+          STADIUM_CLEAR_Z = 140,
+          STADIUM_CLEAR_R = 62;
         function isGrassTreeSpot(x, z) {
           if (isEntranceClearZone(x, z)) return false; // oq kirish yo'lagi doimo bo'sh
-          if (Math.abs(x) < 40 && z > -20 && z < 30) return false; // restoran maydoni
+          // restoran uchastkalarining har biri (hozir ochiq yoki qulflangan
+          // bo'lishidan qat'i nazar) atrofida kengroq bo'sh zona qoldiriladi.
+          for (let i = 0; i < RESTAURANT_PLOT_SPOTS.length; i++) {
+            const px = RESTAURANT_PLOT_SPOTS[i][0],
+              pz = RESTAURANT_PLOT_SPOTS[i][1];
+            if (Math.abs(x - px) < 9.5 && Math.abs(z - pz) < 8.5) return false;
+          }
+          // Restoranning old tarafi: kirish yo'lagi, BUYURTMA XONASI, KASSA
+          // va bayroq turgan joy — bu yerda ham hech narsa o'smaydi.
+          if (Math.abs(x) < 15 && z > -13 && z < 40) return false;
           if (Math.abs(z + 34) < 10) return false; // asosiy yo'l
           if (Math.abs(z - 48) < 8 || Math.abs(z - 88) < 9) return false;
           if (Math.abs(x + 62) < 9 || Math.abs(x - 62) < 9) return false;
           if (Math.abs(x + 96) < 8 || Math.abs(x - 96) < 8) return false;
+          // Futbol stadioni joylashgan hudud ham bo'sh qoladi.
+          if (Math.hypot(x - STADIUM_CLEAR_X, z - STADIUM_CLEAR_Z) < STADIUM_CLEAR_R)
+            return false;
           return true;
         }
         let treeMade = 0,
@@ -1289,10 +1368,18 @@
         // Qo'shimcha shahar manzarasi + osmonda uchadigan samolyotlar
         // ---------------------------------------------------------------
         for (let i = 0; i < 18; i++) {
-          const ang = Math.random() * Math.PI * 2,
-            rad = 95 + Math.random() * 70;
-          const x = Math.cos(ang) * rad,
+          let x, z, tries = 0;
+          do {
+            const ang = Math.random() * Math.PI * 2,
+              rad = 95 + Math.random() * 70;
+            x = Math.cos(ang) * rad;
             z = Math.sin(ang) * rad;
+            tries++;
+          } while (
+            Math.hypot(x - STADIUM_CLEAR_X, z - STADIUM_CLEAR_Z) <
+              STADIUM_CLEAR_R + 25 &&
+            tries < 25
+          );
           const h = 16 + Math.random() * 45;
           makeBuilding(
             x,
@@ -1303,10 +1390,13 @@
             bColors[i % bColors.length],
           );
         }
-        function makePlane() {
+        // Shahardagi eng baland bino (qo'shimcha skayline ichida h<=61) dan
+        // ham samolyotlar aniq yuqorida uchishi uchun mo'ljal sifatida saqlanadi.
+        const TALLEST_BUILDING_APPROX = 61;
+        function makePlane(schemeColor, tailColor) {
           const g = new THREE.Group();
           const white = new THREE.MeshStandardMaterial({
-            color: 0xf4f7fb,
+            color: schemeColor || 0xf4f7fb,
             metalness: 0.35,
             roughness: 0.28,
           });
@@ -1319,6 +1409,11 @@
             color: 0x18354d,
             metalness: 0.35,
             roughness: 0.18,
+          });
+          const tailMat = new THREE.MeshStandardMaterial({
+            color: tailColor || 0x2f7cff,
+            metalness: 0.3,
+            roughness: 0.3,
           });
           const body = new THREE.Mesh(
             new THREE.CylinderGeometry(0.48, 0.58, 5.6, 18),
@@ -1339,7 +1434,9 @@
           const tailWing = box(2.4, 0.08, 0.36, metal, true);
           tailWing.position.z = 2.2;
           g.add(tailWing);
-          const fin = box(0.1, 1.25, 0.72, metal, true);
+          // Dumdagi rangli belgi — "har xil davlat/aviakompaniya" ko'rinishi
+          // shu yerda rang bilan farqlanadi (real IP yoki bayroqsiz, shunchaki liveriya).
+          const fin = box(0.1, 1.25, 0.72, tailMat, true);
           fin.position.set(0, 0.62, 2.25);
           g.add(fin);
           for (const x of [-1.65, 1.65]) {
@@ -1381,16 +1478,33 @@
           );
           rightTip.position.set(3.75, 0, 0.1);
           g.add(rightTip);
-          g.scale.setScalar(1.9);
+          g.scale.setScalar(2.1);
           return g;
         }
+        // 4 ta samolyot — har biri boshqacha liveriya (turli "davlat/aviakompaniya"
+        // ko'rinishi bo'lishi uchun), va hammasi shahar binolari tepasidan
+        // (eng baland bino ~61 dan ancha yuqorida) aniq ko'rinadigan
+        // balandlikda, to'g'ridan-to'g'ri shahar ustidan uchadi.
+        const planeLiveries = [
+          { body: 0xf4f7fb, tail: 0x2f7cff }, // ko'k dumli
+          { body: 0xfdf6ec, tail: 0xe0392f }, // qizil dumli
+          { body: 0xf2fbf5, tail: 0x2fae5a }, // yashil dumli
+          { body: 0xfff8ea, tail: 0xd9a834 }, // sariq/oltin dumli
+        ];
         const planes = [];
         for (let i = 0; i < 4; i++) {
-          const plane = makePlane();
-          plane.position.set(-220 + i * 120, 430 + i * 15, -140 - i * 25);
+          const liv = planeLiveries[i % planeLiveries.length];
+          const plane = makePlane(liv.body, liv.tail);
+          const flyHeight = TALLEST_BUILDING_APPROX + 55 + i * 10; // ~116..146
+          plane.position.set(-210 + i * 120, flyHeight, -85 - i * 18);
           plane.rotation.y = -Math.PI / 2; // samolyot +X tomonga harakat qilsa, burni ham oldinga qaraydi
           scene.add(plane);
-          planes.push({ mesh: plane, speed: 9 + i * 1.5, phase: i * 1.7 });
+          planes.push({
+            mesh: plane,
+            speed: 9 + i * 1.5,
+            phase: i * 1.7,
+            baseY: flyHeight,
+          });
         }
 
         // ---------------------------------------------------------------
@@ -1498,21 +1612,47 @@
         // Sprite helper (order icons + labels, always face camera)
         // ---------------------------------------------------------------
         function makeSprite(text, bg) {
+          // Yuqori aniqlik uchun katta o'lchamli canvas (keyin pastga
+          // siqiladi — natijada matn xira emas, aniq-tiniq ko'rinadi).
+          const baseW = 160,
+            baseH = 80,
+            scaleFactor = 4;
           const cvs = document.createElement("canvas");
-          cvs.width = 160;
-          cvs.height = 80;
+          cvs.width = baseW * scaleFactor;
+          cvs.height = baseH * scaleFactor;
           const ctx = cvs.getContext("2d");
-          ctx.clearRect(0, 0, 160, 80);
+          ctx.scale(scaleFactor, scaleFactor);
+          ctx.clearRect(0, 0, baseW, baseH);
           if (bg) {
             ctx.fillStyle = bg;
-            roundRectPath(ctx, 4, 4, 152, 72, 18);
+            roundRectPath(ctx, 4, 4, baseW - 8, baseH - 8, 18);
             ctx.fill();
           }
-          ctx.font = "46px serif";
+          // Matn uzunligiga qarab shrift moslashadi — uzun yozuvlar
+          // ("BUYURTMA XONASI" kabi) ham to'liq sig'adi.
+          let fontSize = 42;
+          ctx.font = fontSize + "px 'Segoe UI', system-ui, sans-serif";
+          const maxTextWidth = baseW - 14;
+          while (fontSize > 16 && ctx.measureText(text).width > maxTextWidth) {
+            fontSize -= 2;
+            ctx.font = fontSize + "px 'Segoe UI', system-ui, sans-serif";
+          }
           ctx.textAlign = "center";
           ctx.textBaseline = "middle";
-          ctx.fillText(text, 80, 42);
+          // MUHIM TUZATISH: ilgari matn rangi orqa fon rangi bilan bir xil
+          // edi, shu sabab yozuvlar "ko'rinmas" bo'lib qolar edi. Endi matn
+          // doim oq rangda, qora konturi bilan — har qanday fonda ham
+          // aniq-tiniq o'qiladi.
+          ctx.lineWidth = 4;
+          ctx.strokeStyle = "rgba(0,0,0,0.55)";
+          ctx.strokeText(text, baseW / 2, baseH / 2 + 1);
+          ctx.fillStyle = "#ffffff";
+          ctx.fillText(text, baseW / 2, baseH / 2 + 1);
           const tex = new THREE.CanvasTexture(cvs);
+          tex.minFilter = THREE.LinearMipmapLinearFilter;
+          tex.magFilter = THREE.LinearFilter;
+          tex.generateMipmaps = true;
+          tex.needsUpdate = true;
           const mat = new THREE.SpriteMaterial({
             map: tex,
             depthTest: false,
@@ -1532,6 +1672,134 @@
           ctx.arcTo(x, y, x + w, y, r);
           ctx.closePath();
         }
+
+        // ---------------------------------------------------------------
+        // O'zbekiston bayrog'i — kirish qismining bir chekkasida, tayanch
+        // turba (ustun) ustida. Matoning o'zi canvas tekstura orqali
+        // chizilgan: ko'k-oq-yashil chiziqlar + qizil ingichka chiziqlar +
+        // yuqori burchakda oysimon va yulduzlar.
+        // ---------------------------------------------------------------
+        function makeUzFlagTexture() {
+          const w = 512,
+            h = 256;
+          const cvs = document.createElement("canvas");
+          cvs.width = w;
+          cvs.height = h;
+          const ctx = cvs.getContext("2d");
+          const stripe = h / 9; // 1 ko'k, thin qizil, 1 oq, thin qizil, 1 yashil (taxminiy nisbat)
+          // Ko'k
+          ctx.fillStyle = "#0099b5";
+          ctx.fillRect(0, 0, w, stripe * 4);
+          // Qizil ingichka chiziq
+          ctx.fillStyle = "#ce1126";
+          ctx.fillRect(0, stripe * 4, w, stripe * 0.35);
+          // Oq
+          ctx.fillStyle = "#ffffff";
+          ctx.fillRect(0, stripe * 4 + stripe * 0.35, w, stripe * 0.65 + stripe);
+          // Qizil ingichka chiziq (pastki)
+          ctx.fillStyle = "#ce1126";
+          ctx.fillRect(0, stripe * 5.35 + stripe * 0.65, w, stripe * 0.35);
+          // Yashil
+          ctx.fillStyle = "#1eb53a";
+          ctx.fillRect(
+            0,
+            stripe * 5.35 + stripe,
+            w,
+            h - (stripe * 5.35 + stripe),
+          );
+          // Oysimon (crescent) va yulduzlar — yuqori chap burchakda (ko'k fon ustida)
+          ctx.fillStyle = "#ffffff";
+          const moonX = w * 0.14,
+            moonY = stripe * 2,
+            moonR = stripe * 1.15;
+          ctx.beginPath();
+          ctx.arc(moonX, moonY, moonR, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = "#0099b5";
+          ctx.beginPath();
+          ctx.arc(moonX + moonR * 0.42, moonY, moonR * 0.92, 0, Math.PI * 2);
+          ctx.fill();
+          // Yulduzlar (soddalashtirilgan doiralar bilan, 12 ta)
+          ctx.fillStyle = "#ffffff";
+          function star(cx, cy, r) {
+            ctx.beginPath();
+            for (let i = 0; i < 5; i++) {
+              const a1 = (-Math.PI / 2) + (i * 2 * Math.PI) / 5;
+              const a2 = a1 + Math.PI / 5;
+              const x1 = cx + Math.cos(a1) * r,
+                y1 = cy + Math.sin(a1) * r;
+              const x2 = cx + Math.cos(a2) * (r * 0.42),
+                y2 = cy + Math.sin(a2) * (r * 0.42);
+              if (i === 0) ctx.moveTo(x1, y1);
+              else ctx.lineTo(x1, y1);
+              ctx.lineTo(x2, y2);
+            }
+            ctx.closePath();
+            ctx.fill();
+          }
+          const starRows = [
+            [w * 0.24, stripe * 1.1],
+            [w * 0.29, stripe * 1.5],
+            [w * 0.34, stripe * 1.9],
+            [w * 0.24, stripe * 1.9],
+            [w * 0.29, stripe * 2.3],
+            [w * 0.24, stripe * 2.7],
+            [w * 0.34, stripe * 2.7],
+            [w * 0.29, stripe * 3.1],
+          ];
+          for (const s of starRows) star(s[0], s[1], stripe * 0.16);
+          const tex = new THREE.CanvasTexture(cvs);
+          tex.needsUpdate = true;
+          return tex;
+        }
+        function addUzFlag(x, z) {
+          const g = new THREE.Group();
+          // Tayanch (poydevor)
+          const foot = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.55, 0.7, 0.28, 14),
+            new THREE.MeshStandardMaterial({ color: 0x8a8a86, roughness: 0.8 }),
+          );
+          foot.position.y = 0.14;
+          g.add(foot);
+          // Tayanch turba (ustun)
+          const pole = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.1, 0.13, 7.4, 12),
+            new THREE.MeshStandardMaterial({
+              color: 0xd8d8d8,
+              metalness: 0.55,
+              roughness: 0.3,
+            }),
+          );
+          pole.position.y = 3.9;
+          g.add(pole);
+          const ball = new THREE.Mesh(
+            new THREE.SphereGeometry(0.14, 10, 10),
+            new THREE.MeshStandardMaterial({
+              color: 0xf5c518,
+              metalness: 0.6,
+              roughness: 0.25,
+            }),
+          );
+          ball.position.y = 7.65;
+          g.add(ball);
+          // Bayroq mato
+          const flagTex = makeUzFlagTexture();
+          const flagMat = new THREE.MeshStandardMaterial({
+            map: flagTex,
+            side: THREE.DoubleSide,
+            roughness: 0.75,
+          });
+          const flag = new THREE.Mesh(new THREE.PlaneGeometry(2.6, 1.3), flagMat);
+          flag.position.set(1.4, 6.7, 0);
+          g.add(flag);
+          g.position.set(x, 0, z);
+          g.userData.flagMesh = flag;
+          scene.add(g);
+          return g;
+        }
+        // Kirish yo'lagi (|x| < 8) ga tegmaydigan tarzda, uning bir chekkasiga
+        // (o'ng tomoniga) qo'yiladi — kirishni to'smaydi.
+        const uzFlag = addUzFlag(10.5, 27);
 
         // ---------------------------------------------------------------
         // Stanok (machine) factory: burger machine + cola machine
@@ -1857,6 +2125,24 @@
           return best;
         }
 
+        // nearestPickupStation() ga o'xshaydi, lekin istalgan pozitsiyadan
+        // (masalan, yordamchi hodimning joyidan) qidiradi.
+        function nearestStationFrom(fromPos, type) {
+          let best = null;
+          let bestDist = Infinity;
+          for (const p of plots) {
+            if (!p.unlocked) continue;
+            const pos = type === "burger" ? p.worldStanokPos : p.worldColaPos;
+            if (!pos) continue;
+            const d = Math.hypot(fromPos.x - pos.x, fromPos.z - pos.z);
+            if (d < bestDist) {
+              bestDist = d;
+              best = { p, pos, d };
+            }
+          }
+          return best;
+        }
+
         // Mahsulotlar avtomatik, lekin bittalab olinadi.
         // Burger va kola bir-biridan alohida hisoblanadi.
         let lastBurgerTake = 0;
@@ -1897,7 +2183,9 @@
         }
 
         function deliverToCustomer(automatic = false) {
-          const c = customers.find((c) => c.state === "waitingFood");
+          const c = customers.find(
+            (c) => c.state === "waitingFood" && !c.helperClaimed,
+          );
           if (!c) return false;
 
           const distance = Math.hypot(
@@ -2005,7 +2293,9 @@
             inputX /= len;
             inputZ /= len;
             const forward = new THREE.Vector3(Math.sin(yaw), 0, Math.cos(yaw));
-            const right = new THREE.Vector3(Math.cos(yaw), 0, -Math.sin(yaw));
+            // FIX: "right" vektori kamera yaw'iga nisbatan to'g'ri yo'nalishga
+            // moslab teskarilangan edi — shu sabab joystik/A-D teskari ishlar edi.
+            const right = new THREE.Vector3(-Math.cos(yaw), 0, Math.sin(yaw));
             const move = new THREE.Vector3();
             move.addScaledVector(forward, -inputZ);
             move.addScaledVector(right, inputX);
@@ -2072,12 +2362,15 @@
         }
 
         const plots = [];
-        // Barcha mijoz joylari boshidan ochiq — qulflar yo'q.
+        // Asosiy 4 ta joy boshidan ochiq. Chap va o'ng tomondagi yangi
+        // restoranlar esa QULFLANGAN — pul yetganda sotib olinadi.
         const PLOT_DEFS = [
           { x: -16, z: 14, cost: 0, unlocked: true },
           { x: 8, z: 14, cost: 0, unlocked: true },
           { x: -16, z: -2, cost: 0, unlocked: true },
           { x: 8, z: -2, cost: 0, unlocked: true },
+          { x: -38, z: 6, cost: 400, unlocked: false }, // Chap tomondagi restoran
+          { x: 27, z: 6, cost: 900, unlocked: false }, // O'ng tomondagi restoran
         ];
 
         PLOT_DEFS.forEach(function (def, idx) {
@@ -2128,6 +2421,13 @@
           pad.position.y = 0.005;
           pad.receiveShadow = true;
           plotGroup.add(pad);
+
+          // Restoran chekkalaridagi chiroqlar: qulflangan bo'lsa yashirin
+          // turadi, sotib olingach ko'rinadi va tunda yorishadi.
+          addPlotCornerLamp(plotGroup, -6.2, -5.2, true);
+          addPlotCornerLamp(plotGroup, 6.2, 5.2, false);
+          addPlotCornerLamp(plotGroup, 6.2, -5.2, false);
+          addPlotCornerLamp(plotGroup, -6.2, 5.2, false);
 
           // lock fence + sign for locked plots
           let fence = null;
@@ -2632,7 +2932,10 @@
           lastX = x;
           lastY = y;
           const swipeSpeed = Math.min(2.2, 1 + Math.hypot(dx, dy) * 0.018);
-          yaw += dx * SENS * swipeSpeed;
+          // FIX: kamera yo'nalishi teskari edi — o'ngga sudrasangiz chapga
+          // qarardi. Endi belgi teskarilangan: o'ngga sudrasangiz o'ngga,
+          // chapga sudrasangiz chapga qaraydi.
+          yaw -= dx * SENS * swipeSpeed;
           pitch -= dy * SENS * swipeSpeed;
           pitch = Math.max(PITCH_MIN, Math.min(PITCH_MAX, pitch));
         }
@@ -2782,8 +3085,8 @@
         // 1 world unit = 1 metr. Teleminora balandligi 375 m.
         // Futbol maydoni 105 x 68 m.
         // ---------------------------------------------------------------
-        camera.far = 900;
-        if (scene.fog) scene.fog.far = 520;
+        camera.far = 950;
+        if (scene.fog) scene.fog.far = 560;
         camera.updateProjectionMatrix();
 
         const landmarkLights = [];
@@ -2836,11 +3139,30 @@
           antenna.position.y = 370;
           g.add(antenna);
 
+          // Teleminora tepasida O'zbekiston bayrog'i.
+          const flagTex2 = makeUzFlagTexture();
+          const towerFlag = new THREE.Mesh(
+            new THREE.PlaneGeometry(9, 4.5),
+            new THREE.MeshStandardMaterial({
+              map: flagTex2,
+              side: THREE.DoubleSide,
+              roughness: 0.75,
+            }),
+          );
+          towerFlag.position.set(4.6, 417, 0);
+          g.add(towerFlag);
+          const flagPoleTop = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.22, 0.3, 20, 10),
+            metal,
+          );
+          flagPoleTop.position.y = 407;
+          g.add(flagPoleTop);
+
           g.position.set(x, 0, z);
           scene.add(g);
         }
 
-        function addFootballStadium(x, z) {
+        function addFootballStadium(x, z, scale) {
           const g = new THREE.Group();
           const concrete = new THREE.MeshStandardMaterial({
             color: 0xaeb4b8,
@@ -2936,6 +3258,7 @@
           }
 
           g.position.set(x, 0, z);
+          g.scale.setScalar(scale || 1);
           scene.add(g);
 
           const ball = new THREE.Mesh(
@@ -2945,17 +3268,17 @@
               roughness: 0.7,
             })
           );
-          ball.position.set(x, 9.65, z);
+          ball.position.set(x, (9.65) * (scale || 1), z);
           scene.add(ball);
 
           // 22 futbolchi: 11 ga 11.
           for (let i = 0; i < 22; i++) {
             const p = makeCustomer();
-            p.scale.setScalar(0.72);
+            p.scale.setScalar(0.72 * (scale || 1));
             p.position.set(
-              x + (Math.random() - 0.5) * 86,
-              9.05,
-              z + (Math.random() - 0.5) * 54
+              x + (Math.random() - 0.5) * 86 * (scale || 1),
+              9.05 * (scale || 1),
+              z + (Math.random() - 0.5) * 54 * (scale || 1)
             );
             scene.add(p);
             footballPlayers.push({
@@ -2963,15 +3286,22 @@
               phase: i * 0.63,
               cx: x,
               cz: z,
+              rad: scale || 1,
             });
           }
 
           return ball;
         }
 
-        // O'tloqdagi joylashuvlar
-        addTashkentTower(-100, -66);
-        const stadiumBall = addFootballStadium(250, -200);
+        // O'tloqdagi joylashuvlar. Teleminora shahar chekkasida (yo'ldan
+        // xavfsiz masofada), stadion esa endi shaharning o'rta o'tlog'ida,
+        // yo'llar va restoran uchastkalaridan uzoqda, ancha yaqinroq joyda.
+        addTashkentTower(-100, -75);
+        const stadiumBall = addFootballStadium(
+          STADIUM_CLEAR_X,
+          STADIUM_CLEAR_Z,
+          0.62,
+        );
 
         function updateLandmarks(now, dt) {
           const daylight = Math.max(
@@ -2989,23 +3319,155 @@
             p.mesh.position.x =
               p.cx +
               Math.sin(now * 0.0014 + p.phase) *
-                (18 + (p.phase % 4) * 5);
+                (18 + (p.phase % 4) * 5) *
+                p.rad;
             p.mesh.position.z =
               p.cz +
               Math.cos(now * 0.0018 + p.phase * 1.7) *
-                (10 + (p.phase % 5) * 3.5);
+                (10 + (p.phase % 5) * 3.5) *
+                p.rad;
             p.mesh.rotation.y += dt * 0.8;
           }
 
           // Futbol to'pi ham harakatlanadi.
           stadiumBall.position.x =
-            250 + Math.sin(now * 0.0022) * 14;
+            STADIUM_CLEAR_X + Math.sin(now * 0.0022) * 14 * 0.62;
           stadiumBall.position.z =
-            -200 + Math.cos(now * 0.0027) * 9;
+            STADIUM_CLEAR_Z + Math.cos(now * 0.0027) * 9 * 0.62;
           stadiumBall.position.y =
-            9.65 + Math.abs(Math.sin(now * 0.006)) * 0.7;
+            9.65 * 0.62 + Math.abs(Math.sin(now * 0.006)) * 0.7;
         }
 
+        // ---------------------------------------------------------------
+        // Yordamchi hodim: o'yinchiga ergashadi va band bo'lmaganida
+        // mijozlarga o'zi ovqat tashiydi.
+        // ---------------------------------------------------------------
+        const helper = makeCustomer();
+        helper.scale.setScalar(1.02);
+        const helperTag = makeSprite("YORDAMCHI", "rgba(124,179,66,0.92)");
+        helperTag.position.set(0, 2.35, 0);
+        helperTag.scale.set(1.9, 0.7, 1);
+        helper.add(helperTag);
+        helper.position.copy(player.position).add(new THREE.Vector3(2.2, 0, 2.2));
+        scene.add(helper);
+
+        // Yordamchi qo'lidagi burger/kola ham o'yinchinikiga o'xshab
+        // ko'rinadi — olganda paydo bo'ladi, topshirganda yo'qoladi.
+        const helperHeldFood = new THREE.Group();
+        helper.add(helperHeldFood);
+        function refreshHelperHeldFood() {
+          while (helperHeldFood.children.length)
+            helperHeldFood.remove(helperHeldFood.children[0]);
+          for (let i = 0; i < helperInv.burger; i++) {
+            const b = makeHeldBurger();
+            b.position.set(0.7, 1.15 + 0.14 * i, 0.12);
+            b.rotation.y = 0.2;
+            helperHeldFood.add(b);
+          }
+          for (let i = 0; i < helperInv.cola; i++) {
+            const c = makeHeldCola();
+            c.position.set(-0.7, 1.0 + 0.12 * i, 0.1);
+            helperHeldFood.add(c);
+          }
+        }
+
+        let helperState = "idle"; // idle | toStation | toCustomer
+        let helperTargetCustomer = null;
+        let helperNeeds = null;
+        const helperInv = { burger: 0, cola: 0 };
+        const HELPER_SPEED = 7.2;
+
+        function helperDeliver(c) {
+          c.state = "toTable";
+          c._tableTarget = c.table.worldPos
+            .clone()
+            .add(new THREE.Vector3((Math.random() - 0.5) * 0.6, 0, 1.2));
+          if (c.orderSprite) {
+            c.mesh.remove(c.orderSprite);
+            c.orderSprite = null;
+          }
+          helperInv.burger = 0;
+          helperInv.cola = 0;
+          refreshHelperHeldFood();
+          toast("Yordamchi buyurtmani yetkazib berdi! 🧑‍🍳🍔");
+        }
+
+        function updateHelper(dt) {
+          if (helperState === "idle") {
+            const c = customers.find(
+              (c) => c.state === "waitingFood" && !c.helperClaimed,
+            );
+            if (c) {
+              c.helperClaimed = true;
+              helperTargetCustomer = c;
+              helperInv.burger = 0;
+              helperInv.cola = 0;
+              refreshHelperHeldFood();
+              helperNeeds =
+                c.orderType === "burger_cola"
+                  ? { burger: 1, cola: 1 }
+                  : { burger: 1, cola: 0 };
+              helperState = "toStation";
+            } else {
+              // Band ish yo'q — o'yinchining oldida yurib turadi.
+              const pyaw = player.rotation.y;
+              const aheadPos = new THREE.Vector3(
+                player.position.x + Math.sin(pyaw) * 2.4,
+                0,
+                player.position.z + Math.cos(pyaw) * 2.4,
+              );
+              moveToward(helper, aheadPos, HELPER_SPEED, dt);
+            }
+            return;
+          }
+
+          if (helperState === "toStation") {
+            const needBurger = helperNeeds.burger > helperInv.burger;
+            const needCola = helperNeeds.cola > helperInv.cola;
+            const type = needBurger ? "burger" : needCola ? "cola" : null;
+            if (!type) {
+              helperState = "toCustomer";
+              return;
+            }
+            const station = nearestStationFrom(helper.position, type);
+            if (!station) {
+              if (helperTargetCustomer)
+                helperTargetCustomer.helperClaimed = false;
+              helperState = "idle";
+              helperTargetCustomer = null;
+              return;
+            }
+            const arrived = moveToward(helper, station.pos, HELPER_SPEED, dt);
+            if (arrived) {
+              helperInv[type]++;
+              refreshHelperHeldFood();
+            }
+            return;
+          }
+
+          if (helperState === "toCustomer") {
+            if (
+              !helperTargetCustomer ||
+              helperTargetCustomer.state !== "waitingFood"
+            ) {
+              // Mijoz allaqachon xizmat qilingan (masalan o'yinchi tomonidan).
+              helperState = "idle";
+              helperTargetCustomer = null;
+              return;
+            }
+            const arrived = moveToward(
+              helper,
+              helperTargetCustomer.mesh.position,
+              HELPER_SPEED,
+              dt,
+            );
+            if (arrived) {
+              helperDeliver(helperTargetCustomer);
+              helperTargetCustomer = null;
+              helperState = "idle";
+            }
+          }
+        }
 
         // ---------------------------------------------------------------
         // Main loop
@@ -3022,10 +3484,10 @@
           updateLandmarks(now, dt);
           // Fontan suv va rangli chiroqlari jonli harakat qiladi.
           fountain.rotation.y += dt * 0.05;
-          // Samolyotlar shahar ustida uchadi.
+          // Samolyotlar shahar ustida, binolar tepasidan aniq balandlikda uchadi.
           for (const p of planes) {
             p.mesh.position.x += p.speed * dt;
-            p.mesh.position.y = 430 + Math.sin(now * 0.0007 + p.phase) * 15;
+            p.mesh.position.y = p.baseY + Math.sin(now * 0.0007 + p.phase) * 6;
             if (p.mesh.position.x > 190) p.mesh.position.x = -190;
           }
           // Bulutlar sekin suzib o'tadi.
@@ -3074,6 +3536,7 @@
             updatePlayer(dt);
             // Burger, kola va mijozga topshirish endi avtomatik.
             autoInteract();
+            updateHelper(dt);
             updateTraffic(dt, now);
           }
           updateCamera();
