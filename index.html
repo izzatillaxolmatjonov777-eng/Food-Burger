@@ -377,6 +377,7 @@
         }
       }
       @media (max-width: 430px) {
+        #skinList{grid-template-columns:repeat(2,minmax(0,1fr));max-height:56vh}
         #joyZone {
           width: 132px;
           height: 132px;
@@ -394,6 +395,13 @@
       }
 
       /* Telefon: o'yin gorizontal (landscape) ko'rinish uchun */
+
+      #skinBtn{pointer-events:auto;font-weight:900;font-size:14px;color:#fff;background:#2f7ed8;border:3px solid #13243b;border-radius:14px;padding:10px 14px;cursor:pointer}
+      #skinShop{position:fixed;inset:0;z-index:80;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.72);padding:18px}
+      #skinPanel{width:min(560px,94vw);background:#18212b;color:#fff;border:3px solid #f5c518;border-radius:20px;padding:18px;text-align:center;box-shadow:0 12px 40px rgba(0,0,0,.5)}
+      #skinList{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:14px;max-height:62vh;overflow:auto;padding-right:4px}
+      .skinCard{border:2px solid #42576a;border-radius:14px;padding:12px;background:#24313d;color:#fff;font-weight:900;cursor:pointer}.skinCard small{display:block;opacity:.72;margin-top:5px}.skinCard.owned{border-color:#7cb342}.skinCard.active{outline:3px solid #f5c518}
+
       #rotatePhone {
         display: none;
         position: fixed;
@@ -510,6 +518,7 @@
       <div id="coins">💰 0</div>
       <div id="inventory">🍔 0 / 🥤 0</div>
       <div id="dayCounter">📅 Ish kuni: 1</div>
+      <button id="skinBtn">👕 KIYIMLAR</button>
       <div id="hint">
         WASD / strelkalar — yuring · 🍔 yonida burger bittalab 5 tagacha olinadi
         · 🥤 kola ham alohida bittalab 5 tagacha · mijoz yonida avtomatik
@@ -538,6 +547,8 @@
       </div>
     </div>
     <div id="toast"></div>
+    <div id="skinShop"><div id="skinPanel"><h2 style="margin:0;color:#f5c518">👕 FUTBOLCHI KIYIMLARI</h2><p>Coin bilan kiyim sotib oling va o'yinchiga kiydiring.</p><div id="skinList"></div><button class="menuBtn secondary" id="closeSkinShop">YOPISH</button></div></div>
+
 
     <!-- O'tiradigan barcha joylarning tagi bir xil kulrang qilindi -->
     <script
@@ -640,6 +651,10 @@
         const deliverBtn = document.getElementById("deliverBtn");
         const joyZone = document.getElementById("joyZone");
         const joyKnob = document.getElementById("joyKnob");
+        const skinBtn = document.getElementById("skinBtn");
+        const skinShop = document.getElementById("skinShop");
+        const skinList = document.getElementById("skinList");
+        const closeSkinShop = document.getElementById("closeSkinShop");
 
         function toast(msg) {
           toastEl.textContent = msg;
@@ -685,8 +700,16 @@
         // qotib qolishining oldini oladi.
         const isTouchDevice =
           window.matchMedia && window.matchMedia("(pointer: coarse)").matches;
+
+        // Qurilma kuchini taxmin qilib, avtomatik yengil grafik rejimini tanlaymiz.
+        // Ayniqsa eski telefonlarda juda katta ekran resolutioni GPU'ni qotirib qo'ymasligi uchun.
+        const deviceMemory = navigator.deviceMemory || 4;
+        const cpuCores = navigator.hardwareConcurrency || 4;
+        const isLowEndDevice = isTouchDevice && (deviceMemory <= 4 || cpuCores <= 4);
+        const targetFPS = isLowEndDevice ? 30 : 60;
+        const targetFrameMs = 1000 / targetFPS;
         renderer.setPixelRatio(
-          Math.min(window.devicePixelRatio || 1, isTouchDevice ? 1 : 1.5),
+          Math.min(window.devicePixelRatio || 1, isLowEndDevice ? 0.65 : (isTouchDevice ? 0.85 : 1.0)),
         );
         // Soyalar (shadow map) eng katta ishlash xarajatini beradi, ayniqsa
         // telefonlarda. O'yin hech qachon qotmasligi uchun soyalar butunlay
@@ -701,7 +724,7 @@
           62,
           window.innerWidth / window.innerHeight,
           0.1,
-          500,
+          isLowEndDevice ? 320 : 500,
         );
         const camAnchor = new THREE.Vector3(0, 15, 34);
         camera.position.copy(camAnchor);
@@ -714,6 +737,12 @@
           camera.updateProjectionMatrix();
         }
         window.addEventListener("resize", resize);
+        // Ekran yashirilganda o'yin ichki hisoblarini bekorga bajarmaymiz.
+        let pageVisible = !document.hidden;
+        document.addEventListener("visibilitychange", () => {
+          pageVisible = !document.hidden;
+          if (pageVisible) { lastT = 0; lastRenderT = 0; }
+        });
         resize();
 
         // Lights
@@ -763,7 +792,7 @@
           for (let i = 0; i < fountainLights.length; i++)
             fountainLights[i].intensity = 0.1 + nightAmount * 4.2;
           if (running && gameStartMs !== null) {
-            const nextDay = 1 + Math.floor((now - gameStartMs) / 70000);
+            const nextDay = 1 + Math.floor((now - gameStartMs) / 60000);
             if (nextDay !== workedDays) {
               workedDays = nextDay;
               toast("Yangi ish kuni boshlandi! 📅 " + workedDays + "-kun");
@@ -1151,7 +1180,7 @@
         mainJet.position.y = 4.0;
         fountain.add(mainJet);
         fountainJets.push(mainJet);
-        for (let i = 0; i < 18; i++) {
+        for (let i = 0; i < 52; i++) {
           const drop = new THREE.Mesh(
             new THREE.SphereGeometry(0.07 + Math.random() * 0.05, 8, 8),
             new THREE.MeshStandardMaterial({
@@ -2022,6 +2051,8 @@
           g.userData.legs = [legL, legR];
           g.userData.arms = [armL, armR];
           g.userData.walkPhase = 0;
+          g.userData.shirtMat = shirtMat;
+          g.userData.pantsMat = pantsMat;
           g.traverse((o) => {
             if (o.isMesh) {
               o.castShadow = true;
@@ -2033,6 +2064,50 @@
         const player = makePlayer();
         player.position.set(-8, 0, 18);
         scene.add(player);
+        // Futbolchi kiyimlari do'koni — coin bilan sotib olinadi.
+        // 100 ta tushunarli va chiroyli futbolchi skinlari.
+        // Barcha pullik skinlar 300 💰 dan oshmaydi.
+        const skinNames = [
+          "🇺🇿 O'zbekiston", "🔵 Ko'k klassik", "🔴 Qizil klassik", "⚪ Oqartirilgan", "🟢 Yashil klassik",
+          "🟡 Oltin", "🟠 Olov", "🟣 Binafsha", "⚫ Qora premium", "🔷 Osmon ko'k",
+          "🔴 Qizil-oq", "🔵 Ko'k-oq", "🟢 Yashil-oq", "⚫ Qora-oq", "🟡 Sariq-qora",
+          "🟠 To'q sariq", "🟣 Neon binafsha", "🔵 Elektr ko'k", "🔴 Qirmizi", "🟢 Zumrad",
+          "🌊 Dengiz", "🔥 Olovli", "❄️ Muz", "🌙 Tun", "☀️ Quyosh",
+          "🌿 O'rmon", "🏜️ Cho'l", "⚡ Chaqmoq", "🌌 Kosmos", "💎 Olmos",
+          "🐯 Yo'lbars", "🦁 Arslon", "🦅 Burgut", "🐺 Bo'ri", "🐉 Ajdar",
+          "🎮 Gamer", "🏁 Poyga", "🎯 Snayper", "🤖 Robot", "👑 Qirol",
+          "🛡️ Jangchi", "🥷 Ninja", "🦸 Qahramon", "🚀 Raketa", "🌈 Kamalak",
+          "🍀 Omad", "🎃 Qovoq", "🎄 Qish", "🌸 Sakura", "🌺 Tropik",
+          "🏙️ Shahar", "🏟️ Stadion", "⚽ Futbol afsonasi", "🥇 Chempion", "🏆 Kubok",
+          "⭐ Yulduz", "✨ Super yulduz", "💫 Galaktika", "🎆 Festival", "🎨 Rang-barang",
+          "🧊 Kristall", "🌋 Lava", "🌊 To'lqin", "🪨 Granit", "🌪️ Bo'ron",
+          "🟦 Ko'k neon", "🟥 Qizil neon", "🟩 Yashil neon", "🟨 Sariq neon", "🟪 Binafsha neon",
+          "⚪ Oq premium", "⚫ Qora premium II", "🩶 Kumush", "🟤 Bronza", "🟨 Royal Gold",
+          "🔴 Scarlet", "🔵 Royal Blue", "🟢 Forest Pro", "🟠 Orange Pro", "🟣 Violet Pro",
+          "🎽 Tezkor", "🥋 Kuchli", "🏃 Sprint", "🧤 Darvozabon", "🎖️ Kapitan",
+          "👟 Street", "🕶️ Cool", "🧥 Winter Pro", "🌟 VIP", "💥 Power",
+          "🔮 Mystic", "🎵 Music", "📱 Tech", "🏅 Elite", "👑 Ultimate",
+          "🚩 Final Boss", "💯 Legend", "🔥 Master", "⭐ Super Pro", "🏆 100-SKIN LEGEND"
+        ];
+        const skinPalettes = [
+          [0x2f7ed8,0xffffff],[0x1769aa,0x0d1b2a],[0xd32f2f,0x212121],[0xf4f4f4,0x263238],[0x1f8b4c,0xffffff],
+          [0xe0ad20,0x2b2430],[0xff6f00,0x4a1d00],[0x7b1fa2,0x24102f],[0x151515,0x3a3a3a],[0x29b6f6,0x0d47a1],
+          [0xd71920,0xf5f5f5],[0x1565c0,0xffffff],[0x2e7d32,0xf5f5f5],[0x111111,0xf5f5f5],[0xfbc02d,0x1b1b1b],
+          [0xef6c00,0x263238],[0x8e24aa,0x1a1028],[0x2962ff,0x111827],[0xc62828,0x4a1010],[0x00897b,0x10352f],
+          [0x0277bd,0x003b5c],[0xe53935,0x5d1208],[0x90caf9,0xeceff1],[0x101827,0x05070a],[0xffca28,0xff7043],
+          [0x33691e,0x263d14],[0xc28b3c,0x6d4c41],[0xffd600,0x263238],[0x1a237e,0x311b92],[0x80deea,0x263238]
+        ];
+        const skins = skinNames.map((name, i) => {
+          const c = skinPalettes[i % skinPalettes.length];
+          return { id:"skin"+i, name, price:i===0?0:Math.min(300, 50 + ((i*25)%275)), shirt:c[0], pants:c[1] };
+        });
+        let ownedSkins = {skin0:true}, activeSkin = "skin0";
+        function renderSkins(){
+          skinList.innerHTML="";
+          skins.forEach(sk=>{const b=document.createElement("button"); b.className="skinCard"+(ownedSkins[sk.id]?" owned":"")+(activeSkin===sk.id?" active":""); b.innerHTML=sk.name+`<small>${ownedSkins[sk.id]?"TANLANGAN / OCHIQ":sk.price+" 💰"}</small>`; b.onclick=()=>{ if(!ownedSkins[sk.id]){if(coins<sk.price){toast("Coin yetarli emas! 💰");return;} coins-=sk.price; ownedSkins[sk.id]=true; updateHud(); toast(sk.name+" sotib olindi!");} activeSkin=sk.id; player.userData.shirtMat.color.setHex(sk.shirt); player.userData.pantsMat.color.setHex(sk.pants); renderSkins(); }; skinList.appendChild(b);});
+        }
+        skinBtn.addEventListener("click",()=>{renderSkins();skinShop.style.display="flex";});
+        closeSkinShop.addEventListener("click",()=>skinShop.style.display="none");
         const keys = Object.create(null);
         const touchMove = { x: 0, z: 0, active: false };
         window.addEventListener("keydown", (e) => {
@@ -2047,7 +2122,7 @@
         window.addEventListener("keyup", (e) => {
           keys[e.key.toLowerCase()] = false;
         });
-        // Qo'ldagi mahsulotlar: Pizza Ready uslubida 5 tadan stack.
+        // Qo'ldagi mahsulotlar: Pizza Ready uslubida 8 tadan stack.
         const inventory = { burger: 0, cola: 0 };
         const heldFood = new THREE.Group();
         player.add(heldFood);
@@ -2167,20 +2242,20 @@
 
           if (target && target.d <= 7.0) {
             if (type === "burger") {
-              if (inventory.burger >= 5) return true;
+              if (inventory.burger >= 8) return true;
 
               inventory.burger++;
               refreshInventory();
-              toast("1 ta gamburger olindi! 🍔 (" + inventory.burger + "/5)");
+              toast("1 ta gamburger olindi! 🍔 (" + inventory.burger + "/8)");
               return true;
             }
 
             if (type === "cola") {
-              if (inventory.cola >= 5) return true;
+              if (inventory.cola >= 8) return true;
 
               inventory.cola++;
               refreshInventory();
-              toast("1 ta kola olindi! 🥤 (" + inventory.cola + "/5)");
+              toast("1 ta kola olindi! 🥤 (" + inventory.cola + "/8)");
               return true;
             }
           }
@@ -2196,18 +2271,41 @@
         }
 
         function deliverToCustomer(automatic = false) {
-          const c = customers.find(
-            (c) => c.state === "waitingFood" && !c.helperClaimed,
-          );
+          // Avtomatik topshirish: aynan o'yinchi oldiga kelgan mijoz tekshiriladi.
+          // Shuning uchun uzoqdagi birinchi mijoz sabab topshirish bloklanmaydi.
+          let c = null;
+          let bestDistance = Infinity;
+          for (const customer of customers) {
+            if (customer.state !== "waitingFood") continue;
+            const d = Math.hypot(
+              player.position.x - customer.mesh.position.x,
+              player.position.z - customer.mesh.position.z,
+            );
+            if (d < bestDistance) {
+              bestDistance = d;
+              c = customer;
+            }
+          }
           if (!c) return false;
 
-          const distance = Math.hypot(
-            player.position.x - c.mesh.position.x,
-            player.position.z - c.mesh.position.z,
-          );
+          // Mijoz oldiga borgan zahoti topshiriladi. Telefon/joystikdagi
+          // pozitsiya farqlarini ham hisobga olish uchun radius kattaroq.
+          const distance = bestDistance;
+          if (distance > 6.8) return false;
 
-          // Mijozning oldiga yaqin borganda avtomatik topshiriladi.
-          if (distance > 4.2) return false;
+          // Yordamchi bu mijozni oldin band qilgan bo'lsa ham, o'yinchi yaqin
+          // kelsa o'yinchi birinchi bo'lib xizmat qiladi.
+          if (c.helperClaimed) {
+            c.helperClaimed = false;
+            if (helperTargetCustomer === c) {
+              helperTargetCustomer = null;
+              helperNeeds = null;
+              helperState = "idle";
+              helperInv.burger = 0;
+              helperInv.cola = 0;
+              refreshHelperHeldFood();
+            }
+          }
 
           if (c.orderType === "burger" && inventory.burger < 1) {
             if (!automatic) toast("Mijoz uchun burger kerak! 🍔");
@@ -2226,8 +2324,10 @@
           refreshInventory();
 
           c.state = "toTable";
-          // Buyurtma topshirilishi bilan bu mijoz navbatdan chiqadi.
-          // Shuning uchun keyingi mijoz darhol buyurtma bera oladi.
+          // Bu mijoz stoliga qarab yurishni boshladi. Keyingi mijoz faqat
+          // 2 soniyadan keyin buyurtma bera oladi.
+          nextCustomerOrderAllowedAt = performance.now() + NEXT_CUSTOMER_DELAY_MS;
+          // Shu vaqt ichida boshqa mijoz hech qachon faol buyurtma holatiga o'tmaydi.
           c._tableTarget = c.table.worldPos
             .clone()
             .add(new THREE.Vector3((Math.random() - 0.5) * 0.6, 0, 1.2));
@@ -2253,8 +2353,7 @@
 
           const now = performance.now();
 
-          // Burger yonida turganda: 1 → 2 → 3 → 4 → 5 ta.
-          // Bir yo'la 5 ta bo'lib ketmaydi.
+          // Burger yonida turganda 8 tagacha bittalab olinadi.
           const burgerStation = nearestPickupStation("burger");
           const colaStation = nearestPickupStation("cola");
 
@@ -2266,7 +2365,7 @@
           if (burgerNear && (!colaNear || burgerStation.d < colaStation.d)) {
             lastColaTake = 0;
             if (
-              inventory.burger < 5 &&
+              inventory.burger < 8 &&
               now - lastBurgerTake >= AUTO_TAKE_DELAY
             ) {
               lastBurgerTake = now;
@@ -2277,7 +2376,7 @@
             (!burgerNear || colaStation.d < burgerStation.d)
           ) {
             lastBurgerTake = 0;
-            if (inventory.cola < 5 && now - lastColaTake >= AUTO_TAKE_DELAY) {
+            if (inventory.cola < 8 && now - lastColaTake >= AUTO_TAKE_DELAY) {
               lastColaTake = now;
               takeItem("cola", true);
             }
@@ -2313,14 +2412,15 @@
             move.addScaledVector(forward, -inputZ);
             move.addScaledVector(right, inputX);
             move.normalize();
-            const speed = 16.5;
+            const speed = isTouchDevice ? 20.5 : 19.0;
             player.position.addScaledVector(move, speed * dt);
             player.position.x = Math.max(
               -118,
               Math.min(118, player.position.x),
             );
             player.position.z = Math.max(-88, Math.min(108, player.position.z));
-            player.rotation.y = Math.atan2(move.x, move.z);
+            const targetRot = Math.atan2(move.x, move.z);
+            player.rotation.y = THREE.MathUtils.lerp(player.rotation.y, targetRot, Math.min(1, dt * 18));
             player.userData.walkPhase += dt * 12;
             const swing = Math.sin(player.userData.walkPhase) * 0.72;
             player.userData.legs[0].rotation.x = swing;
@@ -2620,7 +2720,14 @@
         const customers = [];
         // Mijozlar buyurtmani bittalab, navbat bilan aytishi uchun tartib raqami.
         let customerQueueSerial = 0;
-        const MAX_CUSTOMERS = 24;
+        // Bir mijoz ovqatni olib stoliga qarab YURISHNI boshlagandan keyin
+        // keyingi mijoz 2 soniya kutadi. Shu vaqt tugamaguncha hech kim
+        // yangi buyurtma holatiga o'tmaydi.
+        let nextCustomerOrderAllowedAt = 0;
+        const NEXT_CUSTOMER_DELAY_MS = 2000;
+        // Past quvvatli telefonlarda bir vaqtda kamroq mijoz bo'ladi.
+        // Bu CPU va GPU yukini sezilarli kamaytiradi.
+        const MAX_CUSTOMERS = isLowEndDevice ? 14 : (isTouchDevice ? 20 : 24);
         const SIT_DURATION = 12000; // exactly 20 seconds, as requested
         const spawnPoints = [
           new THREE.Vector3(-40, 0, 20),
@@ -2658,7 +2765,7 @@
           mesh.position.copy(spawn);
           scene.add(mesh);
 
-          const orderType = Math.random() < 0.32 ? "burger_cola" : "burger";
+          const orderType = "burger_cola";
           const cust = {
             mesh,
             // Hamma mijoz buyurtma xonasiga keladi, lekin buyurtmani faqat
@@ -2753,7 +2860,12 @@
             (c) => c.state === "choosingOrder" || c.state === "waitingFood",
           );
           const next = refreshedQueue.find((c) => c.state === "inQueue");
-          if (!active && next && refreshedQueue[0] === next) {
+          if (
+            !active &&
+            next &&
+            refreshedQueue[0] === next &&
+            elapsedMs >= nextCustomerOrderAllowedAt
+          ) {
             next.state = "choosingOrder";
             next.chooseTimer = 0;
             toast("Navbatdagi mijoz buyurtmasini aytyapti... 📋");
@@ -2764,7 +2876,7 @@
             if (c.state === "choosingOrder") {
               c.mesh.rotation.y = Math.PI;
               c.chooseTimer += dt * 1000;
-              if (c.chooseTimer > 700) {
+              if (c.chooseTimer > 0) {
                 c.state = "waitingFood";
                 c.waitTimer = 0;
                 showOrder(c);
@@ -2782,21 +2894,11 @@
                 c.mesh.userData.legs[1].rotation.x = 0;
               }
 
-              // Real restoran rejimi: buyurtma 3 soniyada tayyor.
-              c.waitTimer = (c.waitTimer || 0) + dt * 1000;
-              if (c.waitTimer >= 3000) {
-                c.state = "toTable";
-                c._tableTarget = c.table.worldPos
-                  .clone()
-                  .add(new THREE.Vector3((Math.random() - 0.5) * 0.6, 0, 1.2));
-
-                if (c.orderSprite) {
-                  c.mesh.remove(c.orderSprite);
-                  c.orderSprite = null;
-                }
-
-                toast("Buyurtma tayyor! Mijoz stoliga ketdi. 🪑🍔");
-              }
+              // Mijoz endi avtomatik stoliga ketmaydi.
+              // U faqat O'YINCHI yoki YORDAMCHI ovqat/ichimlikni topshirgandan
+              // keyingina waitingFood holatidan chiqib stoliga o'tiradi.
+              // Shu sababli bu yerda hech qanday avtomatik taymer yo'q.
+              c.waitTimer = 0;
             } else if (c.state === "toTable") {
               if (moveToward(c.mesh, c._tableTarget, c.speed, dt)) {
                 c.state = "sitting";
@@ -2810,8 +2912,9 @@
                   c.mesh.userData.legs[0].rotation.x = 0;
                   c.mesh.userData.legs[1].rotation.x = 0;
                 }
-                // Mijoz joyiga o'tirgach, keyingi mijoz buyurtma aytishi mumkin.
-                toast("Mijoz joyiga o‘tirdi. Keyingi mijoz navbatda! 🪑");
+                // Keyingi mijoz allaqachon faqat 2 soniyalik navbat qoidasidan keyin
+                // faollashadi; mijozning o'tirib olishini kutish shart emas.
+                toast("Mijoz joyiga o‘tirdi. Navbat davom etmoqda! 🪑");
               }
             } else if (c.state === "sitting") {
               c.sitTimer += dt * 1000;
@@ -2931,7 +3034,7 @@
         let dragging = false,
           lastX = 0,
           lastY = 0;
-        const SENS = 0.0065;
+        const SENS = isTouchDevice ? 0.0105 : 0.009;
 
         function onDown(x, y) {
           dragging = true;
@@ -2971,8 +3074,8 @@
             dy = (dy / len) * max;
           }
           joyKnob.style.transform = `translate(${dx}px,${dy}px)`;
-          touchMove.x = dx / max;
-          touchMove.z = dy / max;
+          touchMove.x = THREE.MathUtils.clamp((dx / max) * 1.18, -1, 1);
+          touchMove.z = THREE.MathUtils.clamp((dy / max) * 1.18, -1, 1);
           touchMove.active = true;
         }
         function resetJoystick() {
@@ -3105,73 +3208,198 @@
         const footballPlayers = [];
 
         function addTashkentTower(x, z) {
+          // Rasmga maksimal moslashtirilgan procedural 3D teleminora.
+          // IMG ishlatilmaydi — barcha qismlar Three.js geometriyalari.
           const g = new THREE.Group();
-          const concrete = new THREE.MeshStandardMaterial({
-            color: 0xb7b6b0,
-            roughness: 0.72,
+
+          const white = new THREE.MeshStandardMaterial({ color: 0xf1eee6, roughness: 0.55, metalness: 0.12 });
+          const concrete = new THREE.MeshStandardMaterial({ color: 0xcfcfc9, roughness: 0.82, metalness: 0.02 });
+          const metal = new THREE.MeshStandardMaterial({ color: 0x34434a, roughness: 0.34, metalness: 0.78 });
+          const glassBlue = new THREE.MeshStandardMaterial({
+            color: 0x087fbd, roughness: 0.16, metalness: 0.45,
+            emissive: 0x043c60, emissiveIntensity: 0.28
           });
-          const metal = new THREE.MeshStandardMaterial({
-            color: 0x59636a,
-            metalness: 0.45,
-            roughness: 0.35,
+          const green = new THREE.MeshStandardMaterial({
+            color: 0x12b66a, roughness: 0.28, metalness: 0.2,
+            emissive: 0x075b35, emissiveIntensity: 0.42
+          });
+          const red = new THREE.MeshStandardMaterial({
+            color: 0xff251f, emissive: 0xff0000, emissiveIntensity: 2.1, roughness: 0.2
           });
 
-          const base = new THREE.Mesh(
-            new THREE.CylinderGeometry(12, 18, 8, 24),
-            concrete,
-          );
-          base.position.y = 4;
-          g.add(base);
+          // Teleminora kechasi yonishi uchun mavjud landmark day/night tizimiga ulanadi.
+          landmarkLights.push(glassBlue, green, red);
+          // Boshlang'ich holatda kunduzgi ko'rinish yumshoq, updateLandmarks kechasi kuchaytiradi.
+          glassBlue.emissiveIntensity = 0.22;
+          green.emissiveIntensity = 0.30;
 
-          const lower = new THREE.Mesh(
-            new THREE.CylinderGeometry(3.2, 6.0, 165, 18),
-            concrete,
-          );
-          lower.position.y = 90.5;
-          g.add(lower);
+          const mesh = (geo, mat, y = 0) => {
+            const m = new THREE.Mesh(geo, mat);
+            m.position.y = y;
+            g.add(m);
+            return m;
+          };
 
-          const deck = new THREE.Mesh(
-            new THREE.CylinderGeometry(13.5, 13.5, 7, 24),
-            metal,
-          );
-          deck.position.y = 177;
-          g.add(deck);
+          const ring = (r, tube, y, mat) => {
+            const m = new THREE.Mesh(new THREE.TorusGeometry(r, tube, 10, 40), mat);
+            m.rotation.x = Math.PI / 2;
+            m.position.y = y;
+            g.add(m);
+            return m;
+          };
 
-          const upper = new THREE.Mesh(
-            new THREE.CylinderGeometry(1.2, 3.0, 145, 16),
-            concrete,
-          );
-          upper.position.y = 253;
-          g.add(upper);
+          // 1) Rasmda ko'ringan keng, past va ko'p pog'onali poydevor
+          mesh(new THREE.CylinderGeometry(31, 33, 1.5, 48), metal, 0.75);
+          mesh(new THREE.CylinderGeometry(28.5, 30.5, 1.8, 48), concrete, 2.25);
+          mesh(new THREE.CylinderGeometry(26.5, 28.5, 1.2, 48), white, 3.75);
+          ring(29.5, 0.38, 1.7, white);
 
-          const antenna = new THREE.Mesh(
-            new THREE.CylinderGeometry(0.35, 0.8, 90, 12),
-            metal,
-          );
-          antenna.position.y = 370;
-          g.add(antenna);
+          // Pastki shisha fasad va tom
+          mesh(new THREE.CylinderGeometry(23, 25, 6.8, 32, 1, true), glassBlue, 7.8);
+          ring(25.0, 0.65, 4.7, white);
+          ring(23.0, 0.55, 11.2, white);
+          mesh(new THREE.CylinderGeometry(18.2, 22.8, 2.2, 32), metal, 12.0);
+          mesh(new THREE.CylinderGeometry(15.5, 18.5, 2.0, 24), concrete, 13.9);
 
-          // Teleminora tepasida O'zbekiston bayrog'i.
-          const flagTex2 = makeUzFlagTexture();
-          const towerFlag = new THREE.Mesh(
-            new THREE.PlaneGeometry(9, 4.5),
-            new THREE.MeshStandardMaterial({
-              map: flagTex2,
-              side: THREE.DoubleSide,
-              roughness: 0.75,
-            }),
-          );
-          towerFlag.position.set(4.6, 417, 0);
-          g.add(towerFlag);
-          const flagPoleTop = new THREE.Mesh(
-            new THREE.CylinderGeometry(0.22, 0.3, 20, 10),
-            metal,
-          );
-          flagPoleTop.position.y = 407;
-          g.add(flagPoleTop);
+          // Pastki markaziy qism — yuborgan namunadagi kabi baland, kengroq va panjarali.
+          mesh(new THREE.CylinderGeometry(6.1, 7.2, 62, 20), glassBlue, 46.5);
+          ring(7.25, 0.72, 15.7, white);
+          ring(7.0, 0.45, 77.4, white);
+
+          // Markaziy "diamond/lattice" karkas: rasmga o'xshash zich diagonal panjara.
+          for (let i = 0; i < 16; i++) {
+            const a = i / 16 * Math.PI * 2;
+            const r = 7.15;
+            const x = Math.cos(a) * r, zc = Math.sin(a) * r;
+
+            const barA = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.16, 68, 6), metal);
+            barA.position.set(x, 46.5, zc);
+            barA.rotation.z = 0.14 * Math.cos(a);
+            barA.rotation.x = 0.14 * Math.sin(a);
+            g.add(barA);
+
+            const barB = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 67, 6), metal);
+            barB.position.set(Math.cos(a + Math.PI / 16) * 7.0, 46.5, Math.sin(a + Math.PI / 16) * 7.0);
+            barB.rotation.z = -0.16 * Math.cos(a);
+            barB.rotation.x = -0.16 * Math.sin(a);
+            g.add(barB);
+          }
+          for (let i = 0; i < 10; i++) {
+            ring(7.1, 0.11, 18 + i * 6.4, metal);
+          }
+
+          // 2) Uchta katta tayanch — rasmda oyoqlar pastda keng, yuqorida tor.
+          // Eski juda ingichka oyoqlar o'rniga konussimon qalin konstruksiya.
+          const addSlantedLeg = (angle) => {
+            const bottom = new THREE.Vector3(Math.cos(angle) * 28.0, 5.5, Math.sin(angle) * 28.0);
+            const upper = new THREE.Vector3(Math.cos(angle) * 10.2, 119.0, Math.sin(angle) * 10.2);
+            const mid = bottom.clone().add(upper).multiplyScalar(0.5);
+            const length = bottom.distanceTo(upper);
+
+            const leg = new THREE.Mesh(
+              new THREE.CylinderGeometry(1.65, 2.9, length, 14),
+              white
+            );
+            leg.position.copy(mid);
+            leg.quaternion.setFromUnitVectors(
+              new THREE.Vector3(0, 1, 0),
+              upper.clone().sub(bottom).normalize()
+            );
+            g.add(leg);
+
+            // Pastdagi keng oyoq poyabzali.
+            const foot = new THREE.Mesh(
+              new THREE.CylinderGeometry(3.8, 4.8, 2.6, 12),
+              concrete
+            );
+            foot.position.copy(bottom);
+            foot.position.y = 4.2;
+            g.add(foot);
+
+            // Har bir tayanchning yuqoridagi markaziy tuguni.
+            const joint = new THREE.Mesh(
+              new THREE.SphereGeometry(2.15, 12, 10),
+              white
+            );
+            joint.position.copy(upper);
+            g.add(joint);
+          };
+          // Oldingi 3 ta tayanchning silueti ko'rinishi uchun aylanish burchagi rasmga moslashtirildi.
+          for (let i = 0; i < 3; i++) addSlantedLeg(Math.PI / 6 + i * Math.PI * 2 / 3);
+
+          // 3) Pastki bo'yin va yashil naqshli asosiy restoran halqasi
+          mesh(new THREE.CylinderGeometry(10.5, 13.2, 9, 28), white, 119.5);
+          ring(13.6, 0.75, 114.8, white);
+
+          mesh(new THREE.CylinderGeometry(17.0, 17.8, 8.4, 40, 1, true), glassBlue, 130.8);
+          ring(18.0, 0.85, 126.7, white);
+          ring(17.6, 0.75, 135.1, white);
+          ring(15.5, 0.45, 139.1, white);
+
+          // Yashil romblar/diagonal naqsh
+          for (let i = 0; i < 28; i++) {
+            const a = i / 28 * Math.PI * 2;
+            const r = 17.75;
+            const p = new THREE.Mesh(new THREE.BoxGeometry(0.28, 8.1, 0.28), green);
+            p.position.set(Math.cos(a) * r, 130.9, Math.sin(a) * r);
+            p.rotation.z = 0.78 * Math.cos(a);
+            p.rotation.x = -0.78 * Math.sin(a);
+            g.add(p);
+          }
+
+          // 4) Uzoq, ko'k panjarali o'rta ustun
+          mesh(new THREE.CylinderGeometry(7.4, 8.0, 92, 18), glassBlue, 190.0);
+          for (let i = 0; i < 16; i++) {
+            const a = i / 16 * Math.PI * 2;
+            const r = 8.1;
+            const v = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 91, 6), metal);
+            v.position.set(Math.cos(a) * r, 190.0, Math.sin(a) * r);
+            g.add(v);
+          }
+          for (let y = 147; y < 232; y += 7) ring(8.15, 0.10, y, metal);
+
+          // 5) Yuqoridagi ikki qavatli kuzatuv platformasi — rasmga yaqin keng disk
+          ring(8.8, 0.55, 236.2, white);
+          mesh(new THREE.CylinderGeometry(14.8, 16.8, 4.0, 40), white, 240.0);
+          mesh(new THREE.CylinderGeometry(17.4, 17.4, 7.5, 40, 1, true), glassBlue, 245.8);
+          ring(17.8, 0.78, 242.0, white);
+          ring(17.8, 0.65, 249.6, white);
+          mesh(new THREE.CylinderGeometry(13.5, 16.8, 4.0, 40), white, 252.2);
+          mesh(new THREE.CylinderGeometry(8.8, 13.0, 3.2, 32), concrete, 255.8);
+
+          // Kuzatuv oynalari orasidagi vertikal ramkalar
+          for (let i = 0; i < 32; i++) {
+            const a = i / 32 * Math.PI * 2;
+            const r = 17.55;
+            const v = new THREE.Mesh(new THREE.BoxGeometry(0.22, 7.3, 0.22), metal);
+            v.position.set(Math.cos(a) * r, 245.8, Math.sin(a) * r);
+            g.add(v);
+          }
+
+          // 6) Yuqori oq ustun va antenna segmentlari
+          mesh(new THREE.CylinderGeometry(3.5, 6.4, 82, 16), white, 298.0);
+          ring(6.5, 0.48, 259.0, white);
+          ring(5.2, 0.42, 286.0, white);
+          ring(4.3, 0.36, 314.0, white);
+
+          mesh(new THREE.CylinderGeometry(1.0, 2.8, 82, 14), white, 380.0);
+          ring(2.9, 0.34, 340.0, white);
+          ring(2.3, 0.28, 365.0, white);
+          ring(1.8, 0.24, 392.0, white);
+
+          mesh(new THREE.CylinderGeometry(0.42, 0.95, 82, 10), metal, 462.0);
+
+          // 7) Rasmda ko'ringan qizil signal nuqtalari
+          [269, 307, 346, 385, 424, 462, 503].forEach((y, i) => {
+            const dot = new THREE.Mesh(new THREE.SphereGeometry(i === 6 ? 1.0 : 0.75, 10, 8), red);
+            dot.position.set(i % 2 ? 1.2 : 0, y, i % 2 ? 0 : 1.0);
+            g.add(dot);
+          });
 
           g.position.set(x, 0, z);
+          g.scale.setScalar(1.0);
           scene.add(g);
+          return g;
         }
 
         function addFootballStadium(x, z, scale) {
@@ -3393,6 +3621,9 @@
 
         function helperDeliver(c) {
           c.state = "toTable";
+          // Yordamchi xizmat qilganida ham navbat bir xil qoida bilan ishlaydi:
+          // mijoz yurishni boshlaydi, keyingi mijoz esa 2 soniya kutadi.
+          nextCustomerOrderAllowedAt = performance.now() + NEXT_CUSTOMER_DELAY_MS;
           c._tableTarget = c.table.worldPos
             .clone()
             .add(new THREE.Vector3((Math.random() - 0.5) * 0.6, 0, 1.2));
@@ -3488,10 +3719,20 @@
         // ---------------------------------------------------------------
         let running = false;
         let lastT = 0;
+        let lastRenderT = 0;
+        let animationFrameSkip = 0;
         function animate(now) {
           requestAnimationFrame(animate);
+          if (!pageVisible) return;
+
+          // Kuchli qurilmalarda 60 FPS, kuchsiz telefonlarda 30 FPS.
+          // requestAnimationFrame baribir ekran bilan sinxron qoladi, lekin og'ir
+          // update/render ishlari kerak bo'lmagan freymlarda bajarilmaydi.
+          if (now - lastRenderT < targetFrameMs * 0.82) return;
+          lastRenderT = now;
+
           if (!lastT) lastT = now;
-          const dt = Math.min((now - lastT) / 1000, 0.05);
+          const dt = Math.min((now - lastT) / 1000, 0.06);
           lastT = now;
 
           updateDayNight(now);
@@ -3571,7 +3812,7 @@
           dayCounterEl.textContent = "📅 Ish kuni: 1";
           for (let i = 0; i < 3; i++) spawnCustomer();
           toast(
-            "🍔 Burger yonida turing — bittalab 5 tagacha olasiz. 🥤 Kola ham alohida bittalab 5 tagacha olinadi!",
+            "🍔 Burger yonida turing — bittalab 8 tagacha olasiz. 🥤 Kola ham alohida bittalab 8 tagacha olinadi!",
           );
         });
       })();
