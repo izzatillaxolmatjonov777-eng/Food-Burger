@@ -72,6 +72,8 @@
         opacity: 0.7;
       }
 
+      /* O'yin kirish oynasi: orqadagi 3D o'yin 40% atrofida blur bo'ladi,
+         lekin menu ichidagi yozuv va tugmalar tiniq qoladi. */
       #menu {
         position: fixed;
         inset: 0;
@@ -80,11 +82,14 @@
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        background: radial-gradient(
-          ellipse at center,
-          rgba(60, 35, 15, 0.55),
-          rgba(10, 6, 3, 0.92)
-        );
+
+        /* Qoramtir yarim shaffof qavat */
+        background: rgba(18, 12, 7, 0.42);
+
+        /* Orqadagi canvas/o'yinni blur qilish */
+        backdrop-filter: blur(6px);
+        -webkit-backdrop-filter: blur(6px);
+
         color: #fff;
         text-align: center;
         gap: 16px;
@@ -400,7 +405,7 @@
       #skinShop{position:fixed;inset:0;z-index:80;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.72);padding:18px}
       #skinPanel{width:min(560px,94vw);background:#18212b;color:#fff;border:3px solid #f5c518;border-radius:20px;padding:18px;text-align:center;box-shadow:0 12px 40px rgba(0,0,0,.5)}
       #skinList{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:14px;max-height:62vh;overflow:auto;padding-right:4px}
-      .skinCard{border:2px solid #42576a;border-radius:14px;padding:12px;background:#24313d;color:#fff;font-weight:900;cursor:pointer}.skinCard small{display:block;opacity:.72;margin-top:5px}.skinCard.owned{border-color:#7cb342}.skinCard.active{outline:3px solid #f5c518}
+      .skinCard{border:2px solid #42576a;border-radius:14px;padding:12px;background:linear-gradient(145deg,#2d3b49,#17212b);color:#fff;font-weight:900;cursor:pointer;text-shadow:0 2px 3px rgba(0,0,0,.65);box-shadow:0 4px 0 rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.08);transition:transform .15s,filter .15s}.skinCard:hover{transform:translateY(-2px);filter:brightness(1.12)}.skinCard small{display:block;opacity:.9;margin-top:6px;color:#f5c518;font-weight:900}.skinCard.owned{border-color:#7cb342}.skinCard.active{outline:3px solid #f5c518;box-shadow:0 0 0 5px rgba(245,197,24,.14),0 5px 0 rgba(0,0,0,.3)}
 
       #rotatePhone {
         display: none;
@@ -701,16 +706,22 @@
         const isTouchDevice =
           window.matchMedia && window.matchMedia("(pointer: coarse)").matches;
 
-        // Qurilma kuchini taxmin qilib, avtomatik yengil grafik rejimini tanlaymiz.
-        // Ayniqsa eski telefonlarda juda katta ekran resolutioni GPU'ni qotirib qo'ymasligi uchun.
+        // Performance rejimi: telefonlarda 60 FPS, kompyuter/notebooklarda 120 FPS maqsad.
+        // Eslatma: haqiqiy FPS monitor refresh rate'idan yuqori bo'la olmaydi.
         const deviceMemory = navigator.deviceMemory || 4;
         const cpuCores = navigator.hardwareConcurrency || 4;
         const isLowEndDevice = isTouchDevice && (deviceMemory <= 4 || cpuCores <= 4);
-        const targetFPS = isLowEndDevice ? 30 : 60;
+        const isDesktop = !isTouchDevice;
+        const targetFPS = isDesktop ? 120 : 60;
         const targetFrameMs = 1000 / targetFPS;
-        renderer.setPixelRatio(
-          Math.min(window.devicePixelRatio || 1, isLowEndDevice ? 0.65 : (isTouchDevice ? 0.85 : 1.0)),
+
+        // Telefonlarda GPU yukini kamaytirish uchun resolution biroz pastroq.
+        // Desktopda 1x render scale barqaror FPS uchun xavfsizroq.
+        const renderPixelRatio = Math.min(
+          window.devicePixelRatio || 1,
+          isLowEndDevice ? 0.70 : (isTouchDevice ? 0.85 : 1.0)
         );
+        renderer.setPixelRatio(renderPixelRatio);
         // Soyalar (shadow map) eng katta ishlash xarajatini beradi, ayniqsa
         // telefonlarda. O'yin hech qachon qotmasligi uchun soyalar butunlay
         // o'chirilgan.
@@ -1646,57 +1657,84 @@
         // Sprite helper (order icons + labels, always face camera)
         // ---------------------------------------------------------------
         function makeSprite(text, bg) {
-          // Yuqori aniqlik uchun katta o'lchamli canvas (keyin pastga
-          // siqiladi — natijada matn xira emas, aniq-tiniq ko'rinadi).
-          const baseW = 160,
-            baseH = 80,
-            scaleFactor = 4;
+          // ULTRA CLEAR LABELS:
+          // Katta retina canvas ishlatiladi. Mipmap o'chiriladi, chunki kichik
+          // 3D yozuvlarda mipmap ko'pincha xiralashishga sabab bo'ladi.
+          const logicalW = 256;
+          const logicalH = 128;
+          const pixelScale = 4;
           const cvs = document.createElement("canvas");
-          cvs.width = baseW * scaleFactor;
-          cvs.height = baseH * scaleFactor;
-          const ctx = cvs.getContext("2d");
-          ctx.scale(scaleFactor, scaleFactor);
-          ctx.clearRect(0, 0, baseW, baseH);
+          cvs.width = logicalW * pixelScale;
+          cvs.height = logicalH * pixelScale;
+
+          const ctx = cvs.getContext("2d", { alpha: true });
+          ctx.setTransform(pixelScale, 0, 0, pixelScale, 0, 0);
+          ctx.imageSmoothingEnabled = true;
+          ctx.clearRect(0, 0, logicalW, logicalH);
+
+          // Fon — kontrast va o'qilishi yaxshi bo'lishi uchun.
           if (bg) {
             ctx.fillStyle = bg;
-            roundRectPath(ctx, 4, 4, baseW - 8, baseH - 8, 18);
+            roundRectPath(ctx, 6, 6, logicalW - 12, logicalH - 12, 28);
             ctx.fill();
+
+            // Yupqa oq highlight va qora border.
+            ctx.lineWidth = 2;
+            ctx.strokeStyle = "rgba(255,255,255,0.16)";
+            roundRectPath(ctx, 6, 6, logicalW - 12, logicalH - 12, 28);
+            ctx.stroke();
           }
-          // Matn uzunligiga qarab shrift moslashadi — uzun yozuvlar
-          // ("BUYURTMA XONASI" kabi) ham to'liq sig'adi.
-          let fontSize = 42;
-          ctx.font = fontSize + "px 'Segoe UI', system-ui, sans-serif";
-          const maxTextWidth = baseW - 14;
-          while (fontSize > 16 && ctx.measureText(text).width > maxTextWidth) {
+
+          // Matnni juda tiniq qilish uchun bold shrift va katta rezolyutsiya.
+          let fontSize = 52;
+          const maxTextWidth = logicalW - 24;
+          do {
+            ctx.font = `900 ${fontSize}px Arial, Helvetica, sans-serif`;
+            if (ctx.measureText(text).width <= maxTextWidth) break;
             fontSize -= 2;
-            ctx.font = fontSize + "px 'Segoe UI', system-ui, sans-serif";
-          }
+          } while (fontSize > 20);
+
           ctx.textAlign = "center";
           ctx.textBaseline = "middle";
-          // MUHIM TUZATISH: ilgari matn rangi orqa fon rangi bilan bir xil
-          // edi, shu sabab yozuvlar "ko'rinmas" bo'lib qolar edi. Endi matn
-          // doim oq rangda, qora konturi bilan — har qanday fonda ham
-          // aniq-tiniq o'qiladi.
-          ctx.lineWidth = 4;
-          ctx.strokeStyle = "rgba(0,0,0,0.55)";
-          ctx.strokeText(text, baseW / 2, baseH / 2 + 1);
-          ctx.fillStyle = "#ffffff";
-          ctx.fillText(text, baseW / 2, baseH / 2 + 1);
+          const x = logicalW / 2;
+          const y = logicalH / 2 + 2;
+
+          // Qalin qora kontur: oq yozuv har qanday fonda aniq ko'rinadi.
+          ctx.lineJoin = "round";
+          ctx.miterLimit = 2;
+          ctx.lineWidth = Math.max(4, fontSize * 0.14);
+          ctx.strokeStyle = "rgba(0,0,0,0.92)";
+          ctx.strokeText(text, x, y);
+
+          // Oq matn + juda yengil soyasi.
+          ctx.shadowColor = "rgba(0,0,0,0.75)";
+          ctx.shadowBlur = 3;
+          ctx.shadowOffsetY = 2;
+          ctx.fillStyle = "#FFFFFF";
+          ctx.fillText(text, x, y);
+          ctx.shadowColor = "transparent";
+
           const tex = new THREE.CanvasTexture(cvs);
-          tex.minFilter = THREE.LinearMipmapLinearFilter;
+          // Mipmaplarni o'chirib, uzoq/yaqin masofada yozuvning xiralashishini kamaytiramiz.
+          tex.generateMipmaps = false;
+          tex.minFilter = THREE.LinearFilter;
           tex.magFilter = THREE.LinearFilter;
-          tex.generateMipmaps = true;
+          tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
           tex.needsUpdate = true;
+
           const mat = new THREE.SpriteMaterial({
             map: tex,
             depthTest: false,
+            depthWrite: false,
             transparent: true,
+            alphaTest: 0.02,
           });
           const spr = new THREE.Sprite(mat);
           spr.scale.set(1.6, 0.8, 1);
           spr.renderOrder = 999;
           return spr;
         }
+
         function roundRectPath(ctx, x, y, w, h, r) {
           ctx.beginPath();
           ctx.moveTo(x + r, y);
@@ -1993,8 +2031,27 @@
         function makePlayer() {
           const g = new THREE.Group();
           const skinMat = new THREE.MeshStandardMaterial({ color: 0xf0c090 });
-          const shirtMat = new THREE.MeshStandardMaterial({ color: 0x2f7ed8 });
-          const pantsMat = new THREE.MeshStandardMaterial({ color: 0x202b38 });
+          // Kiyim materiallari biroz yorqinroq va sifatli ko'rinishi uchun
+          // roughness/metalness/emissive qiymatlari qo'shildi.
+          const shirtMat = new THREE.MeshStandardMaterial({
+            color: 0x2f7ed8,
+            roughness: 0.48,
+            metalness: 0.08,
+            emissive: 0x06111f,
+            emissiveIntensity: 0.12,
+          });
+          const pantsMat = new THREE.MeshStandardMaterial({
+            color: 0x202b38,
+            roughness: 0.58,
+            metalness: 0.04,
+          });
+          const accentMat = new THREE.MeshStandardMaterial({
+            color: 0xffffff,
+            roughness: 0.35,
+            metalness: 0.12,
+            emissive: 0x101010,
+            emissiveIntensity: 0.08,
+          });
           const body = new THREE.Mesh(
             new THREE.CylinderGeometry(0.38, 0.46, 1.0, 12),
             shirtMat,
@@ -2002,6 +2059,23 @@
           body.position.y = 1.1;
           body.castShadow = true;
           g.add(body);
+
+          // Kiyimga ko'rkam detal: yoqa va futbolka oldidagi ikkita chiziq.
+          const collar = new THREE.Mesh(
+            new THREE.TorusGeometry(0.27, 0.045, 8, 16),
+            accentMat,
+          );
+          collar.position.set(0, 1.53, 0);
+          collar.rotation.x = Math.PI / 2;
+          g.add(collar);
+
+          const stripeGeo = new THREE.BoxGeometry(0.075, 0.72, 0.035);
+          const stripeL = new THREE.Mesh(stripeGeo, accentMat);
+          stripeL.position.set(-0.13, 1.1, 0.39);
+          g.add(stripeL);
+          const stripeR = stripeL.clone();
+          stripeR.position.x = 0.13;
+          g.add(stripeR);
           const head = new THREE.Mesh(
             new THREE.SphereGeometry(0.3, 14, 14),
             skinMat,
@@ -2046,13 +2120,14 @@
           g.add(armR);
           const tag = makeSprite("SIZ", "rgba(47,126,216,0.92)");
           tag.position.set(0, 2.65, 0);
-          tag.scale.set(1.25, 0.55, 1);
+          tag.scale.set(1.4, 0.62, 1);
           g.add(tag);
           g.userData.legs = [legL, legR];
           g.userData.arms = [armL, armR];
           g.userData.walkPhase = 0;
           g.userData.shirtMat = shirtMat;
           g.userData.pantsMat = pantsMat;
+          g.userData.accentMat = accentMat;
           g.traverse((o) => {
             if (o.isMesh) {
               o.castShadow = true;
@@ -2064,9 +2139,9 @@
         const player = makePlayer();
         player.position.set(-8, 0, 18);
         scene.add(player);
-        // Futbolchi kiyimlari do'koni — coin bilan sotib olinadi.
-        // 100 ta tushunarli va chiroyli futbolchi skinlari.
-        // Barcha pullik skinlar 300 💰 dan oshmaydi.
+        // Futbolchi kiyimlari do'koni.
+        // Sotib olingan kiyimlar va tanlangan kiyim localStorage'da saqlanadi.
+        const SKIN_SAVE_KEY = "food_burger_skin_save_v3";
         const skinNames = [
           "🇺🇿 O'zbekiston", "🔵 Ko'k klassik", "🔴 Qizil klassik", "⚪ Oqartirilgan", "🟢 Yashil klassik",
           "🟡 Oltin", "🟠 Olov", "🟣 Binafsha", "⚫ Qora premium", "🔷 Osmon ko'k",
@@ -2089,6 +2164,7 @@
           "🔮 Mystic", "🎵 Music", "📱 Tech", "🏅 Elite", "👑 Ultimate",
           "🚩 Final Boss", "💯 Legend", "🔥 Master", "⭐ Super Pro", "🏆 100-SKIN LEGEND"
         ];
+
         const skinPalettes = [
           [0x2f7ed8,0xffffff],[0x1769aa,0x0d1b2a],[0xd32f2f,0x212121],[0xf4f4f4,0x263238],[0x1f8b4c,0xffffff],
           [0xe0ad20,0x2b2430],[0xff6f00,0x4a1d00],[0x7b1fa2,0x24102f],[0x151515,0x3a3a3a],[0x29b6f6,0x0d47a1],
@@ -2097,17 +2173,97 @@
           [0x0277bd,0x003b5c],[0xe53935,0x5d1208],[0x90caf9,0xeceff1],[0x101827,0x05070a],[0xffca28,0xff7043],
           [0x33691e,0x263d14],[0xc28b3c,0x6d4c41],[0xffd600,0x263238],[0x1a237e,0x311b92],[0x80deea,0x263238]
         ];
+
         const skins = skinNames.map((name, i) => {
           const c = skinPalettes[i % skinPalettes.length];
-          return { id:"skin"+i, name, price:i===0?0:Math.min(300, 50 + ((i*25)%275)), shirt:c[0], pants:c[1] };
+          return {
+            id: "skin" + i,
+            name,
+            price: i === 0 ? 0 : Math.min(300, 50 + ((i * 25) % 275)),
+            shirt: c[0],
+            pants: c[1],
+            accent: i % 3 === 0 ? 0xffffff : (i % 3 === 1 ? c[1] : c[0])
+          };
         });
-        let ownedSkins = {skin0:true}, activeSkin = "skin0";
-        function renderSkins(){
-          skinList.innerHTML="";
-          skins.forEach(sk=>{const b=document.createElement("button"); b.className="skinCard"+(ownedSkins[sk.id]?" owned":"")+(activeSkin===sk.id?" active":""); b.innerHTML=sk.name+`<small>${ownedSkins[sk.id]?"TANLANGAN / OCHIQ":sk.price+" 💰"}</small>`; b.onclick=()=>{ if(!ownedSkins[sk.id]){if(coins<sk.price){toast("Coin yetarli emas! 💰");return;} coins-=sk.price; ownedSkins[sk.id]=true; updateHud(); toast(sk.name+" sotib olindi!");} activeSkin=sk.id; player.userData.shirtMat.color.setHex(sk.shirt); player.userData.pantsMat.color.setHex(sk.pants); renderSkins(); }; skinList.appendChild(b);});
+
+        let ownedSkins = { skin0: true };
+        let activeSkin = "skin0";
+
+        function saveSkinProgress() {
+          try {
+            localStorage.setItem(SKIN_SAVE_KEY, JSON.stringify({
+              coins: Math.floor(coins),
+              ownedSkins,
+              activeSkin
+            }));
+          } catch (e) {
+            console.warn("Kiyim saqlanmadi:", e);
+          }
         }
-        skinBtn.addEventListener("click",()=>{renderSkins();skinShop.style.display="flex";});
-        closeSkinShop.addEventListener("click",()=>skinShop.style.display="none");
+
+        function loadSkinProgress() {
+          try {
+            const raw = localStorage.getItem(SKIN_SAVE_KEY);
+            if (!raw) return;
+            const data = JSON.parse(raw);
+            if (Number.isFinite(data.coins) && data.coins >= 0) coins = Math.floor(data.coins);
+            if (data.ownedSkins && typeof data.ownedSkins === "object") {
+              ownedSkins = { skin0: true, ...data.ownedSkins };
+            }
+            if (typeof data.activeSkin === "string" && ownedSkins[data.activeSkin]) {
+              activeSkin = data.activeSkin;
+            }
+          } catch (e) {
+            console.warn("Saqlangan kiyim ma'lumoti o'qilmadi:", e);
+          }
+        }
+
+        function applySkin(id) {
+          const sk = skins.find(s => s.id === id) || skins[0];
+          activeSkin = sk.id;
+          player.userData.shirtMat.color.setHex(sk.shirt);
+          player.userData.pantsMat.color.setHex(sk.pants);
+          player.userData.accentMat.color.setHex(sk.accent);
+
+          // Kiyim rangiga mos juda yengil yorug'lik berib, ko'rinishini jonlantiradi.
+          player.userData.shirtMat.emissive.copy(player.userData.shirtMat.color).multiplyScalar(0.08);
+          player.userData.shirtMat.emissiveIntensity = 0.16;
+          saveSkinProgress();
+        }
+
+        function renderSkins() {
+          skinList.innerHTML = "";
+          skins.forEach(sk => {
+            const owned = !!ownedSkins[sk.id];
+            const b = document.createElement("button");
+            b.className = "skinCard" + (owned ? " owned" : "") + (activeSkin === sk.id ? " active" : "");
+            b.innerHTML = `<span>${sk.name}</span><small>${owned ? (activeSkin === sk.id ? "HOZIR KIYILGAN ✓" : "SOTIB OLINGAN ✓") : sk.price + " 💰"}</small>`;
+
+            b.onclick = () => {
+              if (!ownedSkins[sk.id]) {
+                if (coins < sk.price) {
+                  toast("Coin yetarli emas! Kerak: " + sk.price + " 💰");
+                  return;
+                }
+                // Pul faqat kiyim muvaffaqiyatli sotib olinganda kamayadi.
+                setCoins(coins - sk.price);
+                ownedSkins[sk.id] = true;
+                toast(sk.name + " sotib olindi! 👕");
+              }
+
+              applySkin(sk.id);
+              saveSkinProgress();
+              renderSkins();
+            };
+            skinList.appendChild(b);
+          });
+        }
+
+        skinBtn.addEventListener("click", () => {
+          renderSkins();
+          skinShop.style.display = "flex";
+        });
+        closeSkinShop.addEventListener("click", () => skinShop.style.display = "none");
         const keys = Object.create(null);
         const touchMove = { x: 0, z: 0, active: false };
         window.addEventListener("keydown", (e) => {
@@ -2466,13 +2622,21 @@
         // ---------------------------------------------------------------
         // Plots (purchasable restaurant sections)
         // ---------------------------------------------------------------
+        // Coin va kiyim progressi brauzerda saqlanadi.
         let coins = 250;
+        loadSkinProgress();
         coinsEl.textContent = "💰 " + Math.floor(coins);
+        applySkin(activeSkin);
+
         function setCoins(v) {
-          coins = v;
+          coins = Math.max(0, Math.floor(v));
           coinsEl.textContent = "💰 " + Math.floor(coins);
+          saveSkinProgress();
           updateBuyBar();
         }
+
+        // Birinchi yuklanishda ham tanlangan kiyim va coin holati aniq saqlanadi.
+        saveSkinProgress();
 
         const plots = [];
         // Asosiy 4 ta joy boshidan ochiq. Chap va o'ng tomondagi yangi
@@ -2648,7 +2812,7 @@
           g.add(top);
           const sign = makeSprite(title, "rgba(20,20,24,.86)");
           sign.position.set(0, 2.35, 0);
-          sign.scale.set(2.2, 0.9, 1);
+          sign.scale.set(2.45, 1.02, 1);
           g.add(sign);
           return g;
         }
@@ -3725,14 +3889,15 @@
           requestAnimationFrame(animate);
           if (!pageVisible) return;
 
-          // Kuchli qurilmalarda 60 FPS, kuchsiz telefonlarda 30 FPS.
-          // requestAnimationFrame baribir ekran bilan sinxron qoladi, lekin og'ir
-          // update/render ishlari kerak bo'lmagan freymlarda bajarilmaydi.
-          if (now - lastRenderT < targetFrameMs * 0.82) return;
+          // Telefonlarda 60 FPS, desktop/notebookda 120 FPS maqsad.
+          // requestAnimationFrame monitorning haqiqiy refresh rate'i bilan ishlaydi.
+          if (!lastRenderT) lastRenderT = now;
+          const elapsed = now - lastRenderT;
+          if (elapsed < targetFrameMs * 0.90) return;
           lastRenderT = now;
 
           if (!lastT) lastT = now;
-          const dt = Math.min((now - lastT) / 1000, 0.06);
+          const dt = Math.min((now - lastT) / 1000, 0.05);
           lastT = now;
 
           updateDayNight(now);
